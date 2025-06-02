@@ -1,0 +1,10 @@
+requests
+beautifulsoup4
+openai
+python-dotenv
+argparse
+Flask
+Flask-CORS
+perplexity-client
+request
+jsonify

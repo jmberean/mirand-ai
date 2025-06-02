@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Mock Interview</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <style>
+        #interviewArea {
+            margin-top: 20px;
+        }
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 p-8">
+    <div class="max-w-3xl mx-auto bg-white shadow-md rounded-lg p-6">
+        <h1 class="text-2xl font-bold text-center mb-4">AI Mock Interview</h1>
+
+        <div id="setupArea" class="mb-4">
+            <label for="jobTitleInput" class="block text-gray-700 text-sm font-bold mb-2">Target Job Title:</label>
+            <input type="text" id="jobTitleInput" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" placeholder="e.g., Software Engineer">
+
+            <label for="companyInput" class="block text-gray-700 text-sm font-bold mb-2 mt-2">Target Company:</label>
+            <input type="text" id="companyInput" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" placeholder="e.g., Google">
+
+            <button id="startButton" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline mt-4">Start Interview</button>
+        </div>
+
+        <div id="interviewArea" class="hidden mt-4">
+            <img id="aiAvatar" src="images/robot.png" alt="AI Avatar" style="width: 150px; margin-bottom: 10px;">
+            <div id="questionDisplay" class="mb-4 font-semibold"></div>
+            <textarea id="answerInput" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline mb-2" rows="3" placeholder="Your answer"></textarea>
+            <button id="answerButton" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline mr-2">Submit Answer</button>
+            <button id="nextButton" class="bg-purple-500 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline hidden">Next Question</button>
+            <div id="aiFeedback" class="mt-2 italic text-gray-600"></div>
+        </div>
+
+        <div id="loadingIndicator" class="hidden mt-4 text-center">Loading...</div>
+        <div id="errorDisplay" class="hidden mt-4 text-red-500"></div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

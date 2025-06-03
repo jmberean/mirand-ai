@@ -3,71 +3,167 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Mock Interview - Debug Version</title>
+    <title>AI Mock Interview - Enhanced</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <style>
-        #interviewArea {
-            margin-top: 20px;
-            position: relative;
-        }
-        .hidden {
-            display: none;
-        }
         #avatar-canvas {
             width: 400px;
             height: 500px;
-            border: 2px solid #ccc;
-            background-color: #f0f0f0;
-            position: relative;
-            margin: 20px auto;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
             display: block;
+            margin: 0 auto;
         }
-        #debug-info {
-            background-color: #f8f9fa;
-            border: 1px solid #dee2e6;
-            border-radius: 5px;
-            padding: 10px;
-            margin: 10px 0;
-            font-family: monospace;
-            font-size: 12px;
-            white-space: pre-wrap;
+        
+        .speech-button {
+            transition: all 0.3s ease;
         }
+        
+        .speech-button.recording {
+            background-color: #ef4444 !important;
+            animation: pulse 1.5s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        
+        .voice-controls {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            margin-top: 8px;
+        }
+        
+        .status-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        
+        .status-ready { background-color: #10b981; }
+        .status-loading { background-color: #f59e0b; animation: pulse 1s infinite; }
+        .status-error { background-color: #ef4444; }
     </style>
 </head>
-<body class="bg-gray-100 p-8">
-    <div class="max-w-4xl mx-auto bg-white shadow-md rounded-lg p-6">
-        <h1 class="text-2xl font-bold text-center mb-4">AI Mock Interview - Debug Version</h1>
+<body class="bg-gray-50 min-h-screen py-8">
+    <div class="max-w-6xl mx-auto bg-white shadow-lg rounded-xl p-8">
+        <div class="text-center mb-8">
+            <h1 class="text-3xl font-bold text-gray-800 mb-2">AI Mock Interview</h1>
+            <p class="text-gray-600">Practice your interview skills with AI-powered feedback</p>
+        </div>
 
-        <div id="setupArea" class="mb-4">
-            <label for="jobTitleInput" class="block text-gray-700 text-sm font-bold mb-2">Target Job Title:</label>
-            <input type="text" id="jobTitleInput" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" placeholder="e.g., Software Engineer">
+        <!-- Setup Area -->
+        <div id="setupArea" class="grid md:grid-cols-2 gap-8 mb-8">
+            <div class="space-y-4">
+                <div>
+                    <label for="jobTitleInput" class="block text-gray-700 text-sm font-bold mb-2">Target Job Title:</label>
+                    <input type="text" id="jobTitleInput" 
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" 
+                           placeholder="e.g., Software Engineer">
+                </div>
+                
+                <div>
+                    <label for="companyInput" class="block text-gray-700 text-sm font-bold mb-2">Target Company:</label>
+                    <input type="text" id="companyInput" 
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" 
+                           placeholder="e.g., Google, Microsoft, Meta">
+                </div>
 
-            <label for="companyInput" class="block text-gray-700 text-sm font-bold mb-2 mt-2">Target Company:</label>
-            <input type="text" id="companyInput" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" placeholder="e.g., Google">
+                <!-- Voice Settings -->
+                <div>
+                    <label class="block text-gray-700 text-sm font-bold mb-2">Voice Settings:</label>
+                    <div class="grid grid-cols-2 gap-3">
+                        <select id="voiceSelect" class="px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                            <option value="">Default Voice</option>
+                        </select>
+                        <div class="flex items-center space-x-2">
+                            <label class="text-sm text-gray-600">Speed:</label>
+                            <input type="range" id="speechRate" min="0.5" max="2" step="0.1" value="1" class="flex-1">
+                        </div>
+                    </div>
+                </div>
 
-            <div style="margin-top: 16px;">
-                <button id="startButton" style="background-color: #3b82f6; color: white; font-weight: bold; padding: 8px 16px; border-radius: 4px; border: none; margin-right: 8px; cursor: pointer;">Start Interview</button>
-                <button id="testAvatarButton" style="background-color: #f97316; color: white; font-weight: bold; padding: 8px 16px; border-radius: 4px; border: none; cursor: pointer;">Test Avatar Only</button>
+                <button id="startButton" 
+                        class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition duration-200">
+                    Start Interview
+                </button>
+            </div>
+
+            <!-- Avatar Display -->
+            <div class="text-center">
+                <h3 class="text-lg font-semibold mb-4 text-gray-700">Your AI Interviewer</h3>
+                <canvas id="avatar-canvas"></canvas>
+                <div id="avatarStatus" class="mt-3 text-sm text-gray-600">
+                    <span class="status-indicator status-loading"></span>
+                    Loading avatar...
+                </div>
             </div>
         </div>
 
-        <!-- Avatar Canvas - Always Visible for Testing -->
-        <div class="text-center mb-4">
-            <h3 class="text-lg font-semibold mb-2">3D Avatar</h3>
-            <canvas id="avatar-canvas"></canvas>
-            <div id="debug-info">Debug info will appear here...</div>
+        <!-- Interview Area -->
+        <div id="interviewArea" class="hidden">
+            <div class="bg-gray-50 rounded-lg p-6 mb-6">
+                <div id="questionDisplay" class="text-lg font-medium text-gray-800 mb-4"></div>
+                
+                <!-- Answer Input -->
+                <div class="space-y-4">
+                    <textarea id="answerInput" 
+                              class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none" 
+                              rows="4" 
+                              placeholder="Type your answer here or use voice input..."></textarea>
+                    
+                    <!-- Voice Controls -->
+                    <div class="voice-controls">
+                        <button id="micButton" 
+                                class="speech-button bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition duration-200">
+                            🎤 Start Recording
+                        </button>
+                        <button id="stopMicButton" 
+                                class="hidden bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition duration-200">
+                            ⏹️ Stop Recording
+                        </button>
+                        <span id="speechStatus" class="text-sm text-gray-600"></span>
+                    </div>
+                    
+                    <!-- Action Buttons -->
+                    <div class="flex space-x-3">
+                        <button id="answerButton" 
+                                class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-lg transition duration-200">
+                            Submit Answer
+                        </button>
+                        <button id="nextButton" 
+                                class="hidden bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-6 rounded-lg transition duration-200">
+                            Next Question
+                        </button>
+                        <button id="repeatQuestionButton" 
+                                class="bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-6 rounded-lg transition duration-200">
+                            🔊 Repeat Question
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- AI Feedback -->
+            <div id="feedbackArea" class="bg-blue-50 rounded-lg p-6">
+                <h4 class="text-lg font-semibold text-blue-800 mb-3">AI Feedback</h4>
+                <div id="aiFeedback" class="text-gray-700 italic">Your feedback will appear here...</div>
+            </div>
         </div>
 
-        <div id="interviewArea" class="hidden mt-4">
-            <div id="questionDisplay" class="mb-4 font-semibold"></div>
-            <textarea id="answerInput" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline mb-2" rows="3" placeholder="Your answer"></textarea>
-            <button id="answerButton" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline mr-2">Submit Answer</button>
-            <button id="nextButton" class="bg-purple-500 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline hidden">Next Question</button>
-            <div id="aiFeedback" class="mt-2 italic text-gray-600"></div>
+        <!-- Loading and Error States -->
+        <div id="loadingIndicator" class="hidden text-center py-8">
+            <div class="inline-flex items-center space-x-3">
+                <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+                <span class="text-gray-600">Processing...</span>
+            </div>
         </div>
-
-        <div id="loadingIndicator" class="hidden mt-4 text-center">Loading...</div>
-        <div id="errorDisplay" class="hidden mt-4 text-red-500"></div>
+        
+        <div id="errorDisplay" class="hidden mt-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700"></div>
     </div>
 
     <script type="importmap">
@@ -83,149 +179,199 @@
         import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
         import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
-        // DOM elements
-        const jobTitleInput = document.getElementById('jobTitleInput');
-        const companyInput = document.getElementById('companyInput');
-        const startButton = document.getElementById('startButton');
-        const testAvatarButton = document.getElementById('testAvatarButton');
-        const interviewArea = document.getElementById('interviewArea');
-        const questionDisplay = document.getElementById('questionDisplay');
-        const answerInput = document.getElementById('answerInput');
-        const answerButton = document.getElementById('answerButton');
-        const aiFeedback = document.getElementById('aiFeedback');
-        const nextButton = document.getElementById('nextButton');
-        const loadingIndicator = document.getElementById('loadingIndicator');
-        const errorDisplay = document.getElementById('errorDisplay');
-        const avatarCanvas = document.getElementById('avatar-canvas');
-        const debugInfo = document.getElementById('debug-info');
+        // DOM Elements
+        const elements = {
+            jobTitleInput: document.getElementById('jobTitleInput'),
+            companyInput: document.getElementById('companyInput'),
+            voiceSelect: document.getElementById('voiceSelect'),
+            speechRate: document.getElementById('speechRate'),
+            startButton: document.getElementById('startButton'),
+            interviewArea: document.getElementById('interviewArea'),
+            questionDisplay: document.getElementById('questionDisplay'),
+            answerInput: document.getElementById('answerInput'),
+            answerButton: document.getElementById('answerButton'),
+            nextButton: document.getElementById('nextButton'),
+            repeatQuestionButton: document.getElementById('repeatQuestionButton'),
+            micButton: document.getElementById('micButton'),
+            stopMicButton: document.getElementById('stopMicButton'),
+            speechStatus: document.getElementById('speechStatus'),
+            aiFeedback: document.getElementById('aiFeedback'),
+            loadingIndicator: document.getElementById('loadingIndicator'),
+            errorDisplay: document.getElementById('errorDisplay'),
+            avatarCanvas: document.getElementById('avatar-canvas'),
+            avatarStatus: document.getElementById('avatarStatus')
+        };
 
+        // Application State
         let interviewQuestions = [];
         let currentQuestionIndex = 0;
         let allFeedback = [];
+        let currentQuestion = '';
 
-        // Debug logging function
-        function debugLog(message) {
-            console.log(message);
-            debugInfo.textContent += new Date().toLocaleTimeString() + ': ' + message + '\n';
+        // Three.js Variables
+        let scene, camera, renderer, controls, avatarModel, animationMixer;
+        let speakingAnimation, idleAnimation, currentAction;
+        let morphTargets = null; // For facial animations
+        let isSpeaking = false;
+        const clock = new THREE.Clock();
+
+        // Speech Recognition Variables
+        let recognition = null;
+        let isRecording = false;
+        
+        // Advanced lip-sync variables
+        let audioContext = null;
+        let analyser = null;
+        let microphone = null;
+        let speechAnalysisData = null;
+
+        // Web Speech API Setup
+        const synth = window.speechSynthesis;
+        let selectedVoice = null;
+
+        // Initialize Application
+        function initApp() {
+            initThreeJS();
+            initSpeechRecognition();
+            populateVoiceList();
+            loadAvatar();
+            setupEventListeners();
         }
 
-        // Initialize Three.js Scene
-        let scene, camera, renderer, controls, avatarModel;
-
+        // Three.js Setup
         function initThreeJS() {
-            debugLog('Initializing Three.js...');
-            
-            // Scene setup
             scene = new THREE.Scene();
-            scene.background = new THREE.Color(0xf0f0f0);
+            scene.background = new THREE.Color(0xf8fafc);
             
-            // Camera setup
-            const aspect = avatarCanvas.clientWidth / avatarCanvas.clientHeight;
-            camera = new THREE.PerspectiveCamera(75, aspect, 0.1, 1000);
-            camera.position.set(0, 1.6, 3);
+            const aspect = elements.avatarCanvas.clientWidth / elements.avatarCanvas.clientHeight;
+            camera = new THREE.PerspectiveCamera(45, aspect, 0.1, 1000); // Even tighter FOV
+            camera.position.set(0, 1.65, 1.2); // Perfect face framing position
             
-            // Renderer setup
             renderer = new THREE.WebGLRenderer({ 
-                canvas: avatarCanvas, 
+                canvas: elements.avatarCanvas, 
                 antialias: true 
             });
-            renderer.setSize(avatarCanvas.clientWidth, avatarCanvas.clientHeight);
+            renderer.setSize(elements.avatarCanvas.clientWidth, elements.avatarCanvas.clientHeight);
             renderer.setPixelRatio(window.devicePixelRatio);
             renderer.shadowMap.enabled = true;
             renderer.shadowMap.type = THREE.PCFSoftShadowMap;
             
-            // Controls
             controls = new OrbitControls(camera, renderer.domElement);
             controls.enableDamping = true;
             controls.dampingFactor = 0.05;
-            controls.target.set(0, 1, 0);
+            controls.target.set(0, 1.65, 0); // Focus exactly on face level
+            controls.enableZoom = true;
+            controls.enablePan = false;
+            controls.maxPolarAngle = Math.PI / 1.5; // Prevent looking too far up/down
+            controls.minDistance = 0.8; // Prevent getting too close
+            controls.maxDistance = 2.5; // Reasonable max distance
             
-            // Lighting
-            const ambientLight = new THREE.AmbientLight(0x404040, 0.6);
+            // Professional portrait lighting
+            const ambientLight = new THREE.AmbientLight(0x404040, 1.0);
             scene.add(ambientLight);
             
-            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
-            directionalLight.position.set(5, 10, 5);
-            directionalLight.castShadow = true;
-            directionalLight.shadow.mapSize.width = 2048;
-            directionalLight.shadow.mapSize.height = 2048;
-            scene.add(directionalLight);
+            // Key light (main facial lighting) - from slightly above and to the side
+            const keyLight = new THREE.DirectionalLight(0xffffff, 1.2);
+            keyLight.position.set(1.5, 2.5, 2);
+            keyLight.castShadow = true;
+            scene.add(keyLight);
             
-            // Add a test cube to verify Three.js is working
-            const testGeometry = new THREE.BoxGeometry(0.5, 0.5, 0.5);
-            const testMaterial = new THREE.MeshLambertMaterial({ color: 0x00ff00 });
-            const testCube = new THREE.Mesh(testGeometry, testMaterial);
-            testCube.position.set(-2, 1, 0);
-            scene.add(testCube);
+            // Fill light (soften shadows on other side of face)
+            const fillLight = new THREE.DirectionalLight(0xffffff, 0.6);
+            fillLight.position.set(-1, 1.5, 1);
+            scene.add(fillLight);
             
-            debugLog('Three.js initialized successfully');
-            debugLog(`Canvas size: ${avatarCanvas.clientWidth}x${avatarCanvas.clientHeight}`);
-            debugLog(`Camera aspect: ${aspect}`);
+            // Rim/back light for professional look
+            const rimLight = new THREE.DirectionalLight(0x7c3aed, 0.4);
+            rimLight.position.set(0, 2, -2);
+            scene.add(rimLight);
             
             animate();
         }
 
+        // Avatar Loading
         function loadAvatar() {
-            debugLog('Starting avatar load...');
+            updateAvatarStatus('loading', 'Loading avatar...');
             
-            // Test multiple avatar URLs in case one is problematic
             const avatarUrls = [
-                'https://models.readyplayer.me/683efe096ef5e269d307e27e.glb', // Your specific avatar
-                'https://models.readyplayer.me/683e288ef869a1762214c735.glb', // Original avatar
-                'https://models.readyplayer.me/65a6da99c832ca2d3ba9c877.glb' // Fallback model
+                'https://models.readyplayer.me/683efe096ef5e269d307e27e.glb',
+                'https://models.readyplayer.me/683e288ef869a1762214c735.glb'
             ];
             
             let currentUrlIndex = 0;
             
             function tryLoadAvatar(urlIndex) {
                 if (urlIndex >= avatarUrls.length) {
-                    debugLog('All avatar URLs failed, loading fallback model');
-                    loadFallbackModel();
+                    createFallbackAvatar();
                     return;
                 }
                 
-                const avatarUrl = avatarUrls[urlIndex];
-                debugLog(`Trying avatar URL ${urlIndex + 1}: ${avatarUrl}`);
-                
                 const gltfLoader = new GLTFLoader();
+                const avatarUrl = avatarUrls[urlIndex];
                 
-                // Set a timeout for loading
                 const timeoutId = setTimeout(() => {
-                    debugLog(`Loading timeout for URL ${urlIndex + 1}, trying next...`);
                     tryLoadAvatar(urlIndex + 1);
-                }, 10000); // 10 second timeout
+                }, 15000);
                 
                 gltfLoader.load(
                     avatarUrl,
                     (gltf) => {
                         clearTimeout(timeoutId);
-                        debugLog('GLTF loaded successfully!');
                         avatarModel = gltf.scene;
                         
-                        // Log model info
-                        debugLog(`Model children count: ${avatarModel.children.length}`);
-                        debugLog(`Model scale: ${avatarModel.scale.x}, ${avatarModel.scale.y}, ${avatarModel.scale.z}`);
+                        // Setup animations if available
+                        if (gltf.animations && gltf.animations.length) {
+                            animationMixer = new THREE.AnimationMixer(avatarModel);
+                            
+                            console.log('Available animations:', gltf.animations.map(clip => clip.name));
+                            
+                            // Find and setup different animation types
+                            idleAnimation = gltf.animations.find(clip => 
+                                clip.name.toLowerCase().includes('idle') || 
+                                clip.name.toLowerCase().includes('breathing') ||
+                                clip.name.toLowerCase().includes('breath')
+                            );
+                            
+                            speakingAnimation = gltf.animations.find(clip => 
+                                clip.name.toLowerCase().includes('talk') || 
+                                clip.name.toLowerCase().includes('speak') ||
+                                clip.name.toLowerCase().includes('mouth')
+                            );
+                            
+                            // If no specific animations found, use the first one as idle
+                            if (!idleAnimation && gltf.animations.length > 0) {
+                                idleAnimation = gltf.animations[0];
+                            }
+                            
+                            // Start with idle animation
+                            if (idleAnimation) {
+                                currentAction = animationMixer.clipAction(idleAnimation);
+                                currentAction.play();
+                                console.log('Playing idle animation:', idleAnimation.name);
+                            }
+                        }
                         
-                        // Calculate bounding box
+                        // Setup facial morphs for lip sync
+                        setupFacialMorphs();
+                        
+                        // Position and scale for perfect face framing
                         const box = new THREE.Box3().setFromObject(avatarModel);
                         const size = box.getSize(new THREE.Vector3());
                         const center = box.getCenter(new THREE.Vector3());
                         
-                        debugLog(`Model size: ${size.x.toFixed(2)}, ${size.y.toFixed(2)}, ${size.z.toFixed(2)}`);
-                        debugLog(`Model center: ${center.x.toFixed(2)}, ${center.y.toFixed(2)}, ${center.z.toFixed(2)}`);
+                        console.log('Avatar original size:', size);
+                        console.log('Avatar center:', center);
                         
-                        // Position and scale the model
-                        avatarModel.position.set(0, 0, 0);
-                        
-                        // Scale based on model size - typical Ready Player Me models are quite large
-                        const scaleFactor = 1.8 / size.y; // Scale to about 1.8 units tall
+                        // Scale for face-focused view
+                        const scaleFactor = 3.0 / size.y; // Even larger for face focus
                         avatarModel.scale.setScalar(scaleFactor);
                         
-                        // Center the model
-                        avatarModel.position.y = -center.y * scaleFactor;
+                        // Position so face is centered in view
+                        const headHeight = size.y * 0.15; // Estimate head is ~15% of total height
+                        avatarModel.position.set(0, -center.y * scaleFactor + headHeight, 0);
                         
-                        debugLog(`Applied scale: ${scaleFactor.toFixed(3)}`);
-                        debugLog(`Final position: ${avatarModel.position.x}, ${avatarModel.position.y}, ${avatarModel.position.z}`);
+                        console.log('Applied scale factor:', scaleFactor);
+                        console.log('Final avatar position:', avatarModel.position);
                         
                         // Enable shadows
                         avatarModel.traverse((child) => {
@@ -236,22 +382,15 @@
                         });
                         
                         scene.add(avatarModel);
-                        debugLog('Avatar added to scene!');
+                        updateAvatarStatus('ready', 'Avatar ready');
                     },
                     (progress) => {
-                        if (progress.total > 0) {
-                            const percent = (progress.loaded / progress.total * 100);
-                            debugLog(`Loading progress: ${percent.toFixed(1)}%`);
-                        } else {
-                            debugLog(`Loading progress: ${progress.loaded} bytes loaded`);
-                        }
+                        const percent = (progress.loaded / progress.total * 100);
+                        updateAvatarStatus('loading', `Loading avatar... ${percent.toFixed(0)}%`);
                     },
                     (error) => {
                         clearTimeout(timeoutId);
-                        debugLog(`Error loading GLTF from URL ${urlIndex + 1}: ${error.message}`);
-                        console.error('GLTF loading error:', error);
-                        
-                        // Try next URL
+                        console.error('Avatar loading error:', error);
                         setTimeout(() => tryLoadAvatar(urlIndex + 1), 1000);
                     }
                 );
@@ -259,306 +398,1046 @@
             
             tryLoadAvatar(0);
         }
-        
-        function loadFallbackModel() {
-            debugLog('Creating fallback 3D model...');
+
+        function setupFacialMorphs() {
+            if (!avatarModel) return;
             
-            // Create a simple humanoid figure as fallback
-            const group = new THREE.Group();
-            
-            // Head
-            const headGeometry = new THREE.SphereGeometry(0.15, 16, 16);
-            const headMaterial = new THREE.MeshLambertMaterial({ color: 0xfdbcb4 }); // Skin color
-            const head = new THREE.Mesh(headGeometry, headMaterial);
-            head.position.y = 1.65;
-            group.add(head);
-            
-            // Body
-            const bodyGeometry = new THREE.CylinderGeometry(0.2, 0.25, 0.6, 8);
-            const bodyMaterial = new THREE.MeshLambertMaterial({ color: 0x4169e1 }); // Blue shirt
-            const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
-            body.position.y = 1.2;
-            group.add(body);
-            
-            // Arms
-            const armGeometry = new THREE.CylinderGeometry(0.08, 0.08, 0.5, 8);
-            const armMaterial = new THREE.MeshLambertMaterial({ color: 0xfdbcb4 });
-            
-            const leftArm = new THREE.Mesh(armGeometry, armMaterial);
-            leftArm.position.set(-0.35, 1.2, 0);
-            leftArm.rotation.z = 0.3;
-            group.add(leftArm);
-            
-            const rightArm = new THREE.Mesh(armGeometry, armMaterial);
-            rightArm.position.set(0.35, 1.2, 0);
-            rightArm.rotation.z = -0.3;
-            group.add(rightArm);
-            
-            // Legs
-            const legGeometry = new THREE.CylinderGeometry(0.1, 0.1, 0.7, 8);
-            const legMaterial = new THREE.MeshLambertMaterial({ color: 0x2f4f4f }); // Dark pants
-            
-            const leftLeg = new THREE.Mesh(legGeometry, legMaterial);
-            leftLeg.position.set(-0.15, 0.55, 0);
-            group.add(leftLeg);
-            
-            const rightLeg = new THREE.Mesh(legGeometry, legMaterial);
-            rightLeg.position.set(0.15, 0.55, 0);
-            group.add(rightLeg);
-            
-            // Enable shadows
-            group.traverse((child) => {
-                if (child.isMesh) {
-                    child.castShadow = true;
-                    child.receiveShadow = true;
+            // Find facial meshes that might have morph targets
+            avatarModel.traverse((child) => {
+                if (child.isMesh && child.morphTargetDictionary) {
+                    console.log('Found morph targets:', Object.keys(child.morphTargetDictionary));
+                    morphTargets = child;
+                    
+                    // Common morph target names for mouth movement
+                    const mouthMorphs = ['mouthOpen', 'jawOpen', 'mouth_open', 'viseme_aa', 'viseme_E', 'viseme_I', 'viseme_O', 'viseme_U'];
+                    
+                    // Check which mouth morphs are available
+                    mouthMorphs.forEach(morphName => {
+                        if (child.morphTargetDictionary[morphName] !== undefined) {
+                            console.log('Available mouth morph:', morphName);
+                        }
+                    });
                 }
             });
+        }
+
+        function startSpeakingAnimation() {
+            if (!avatarModel) return;
+            
+            console.log('🎭 Starting speaking animation...');
+            isSpeaking = true;
+            
+            // Switch to speaking animation if available
+            if (speakingAnimation && animationMixer) {
+                console.log('🎬 Switching to speaking animation:', speakingAnimation.name);
+                if (currentAction) {
+                    currentAction.fadeOut(0.3);
+                }
+                
+                currentAction = animationMixer.clipAction(speakingAnimation);
+                currentAction.reset().fadeIn(0.3).play();
+                currentAction.setLoop(THREE.LoopRepeat);
+            } else if (idleAnimation && animationMixer) {
+                // Speed up idle animation for speaking effect
+                console.log('⚡ Speeding up idle animation for speaking effect');
+                if (currentAction) {
+                    currentAction.setEffectiveTimeScale(1.5); // 1.5x speed for subtle animation
+                }
+            }
+            
+            // Start the appropriate mouth animation based on avatar type
+            if (morphTargets) {
+                console.log('🗣️ Starting morph-based lip sync');
+                animateMouthMorphs();
+            } else if (avatarModel.userData && avatarModel.userData.mouth) {
+                console.log('🎭 Starting fallback mouth animation');
+                animateFallbackMouth();
+            } else {
+                console.log('⚠️ No mouth animation available, using head movement only');
+                animateHeadBobbing();
+            }
+            
+            // Add subtle head movements for all avatars during speaking
+            animateSpeakingHeadMovement();
+        }
+
+        function stopSpeakingAnimation() {
+            if (!avatarModel) return;
+            
+            console.log('🔇 Stopping speaking animation...');
+            isSpeaking = false;
+            
+            // Switch back to idle animation
+            if (idleAnimation && animationMixer && currentAction) {
+                console.log('🔄 Switching back to idle animation');
+                if (speakingAnimation) {
+                    currentAction.fadeOut(0.3);
+                    currentAction = animationMixer.clipAction(idleAnimation);
+                    currentAction.reset().fadeIn(0.3).play();
+                    currentAction.setLoop(THREE.LoopRepeat);
+                } else {
+                    // Reset speed if we were using sped-up idle
+                    currentAction.setEffectiveTimeScale(1.0);
+                }
+            }
+            
+            // Reset mouth morphs to neutral position
+            if (morphTargets) {
+                const mouthMorphNames = ['jawOpen', 'mouthOpen', 'mouth_open', 'viseme_aa', 'viseme_E', 'viseme_I', 'viseme_O', 'viseme_U'];
+                mouthMorphNames.forEach(morphName => {
+                    if (morphTargets.morphTargetDictionary[morphName] !== undefined) {
+                        const morphIndex = morphTargets.morphTargetDictionary[morphName];
+                        morphTargets.morphTargetInfluences[morphIndex] = 0;
+                    }
+                });
+            }
+        }
+
+        function animateFallbackMouth() {
+            if (!isSpeaking || !avatarModel.userData.mouth) return;
+            
+            const mouth = avatarModel.userData.mouth;
+            const originalScale = mouth.scale.y;
+            
+            const animate = () => {
+                if (!isSpeaking) {
+                    mouth.scale.y = originalScale;
+                    return;
+                }
+                
+                // Random mouth opening
+                const targetScale = originalScale * (0.5 + Math.random() * 1.5);
+                const duration = 100 + Math.random() * 200;
+                
+                // Animate to target
+                const startScale = mouth.scale.y;
+                const startTime = Date.now();
+                
+                const updateMouth = () => {
+                    if (!isSpeaking) {
+                        mouth.scale.y = originalScale;
+                        return;
+                    }
+                    
+                    const elapsed = Date.now() - startTime;
+                    const progress = Math.min(elapsed / duration, 1);
+                    
+                    mouth.scale.y = startScale + (targetScale - startScale) * progress;
+                    
+                    if (progress >= 1) {
+                        setTimeout(animate, 50 + Math.random() * 100);
+                    } else {
+                        requestAnimationFrame(updateMouth);
+                    }
+                };
+                
+                updateMouth();
+            };
+            
+            animate();
+        }
+
+        function animateSpeakingHeadMovement() {
+            if (!isSpeaking || !avatarModel) return;
+            
+            const originalRotation = { x: avatarModel.rotation.x, y: avatarModel.rotation.y, z: avatarModel.rotation.z };
+            
+            const animate = () => {
+                if (!isSpeaking) {
+                    avatarModel.rotation.x = originalRotation.x;
+                    avatarModel.rotation.y = originalRotation.y;
+                    avatarModel.rotation.z = originalRotation.z;
+                    return;
+                }
+                
+                const time = Date.now() * 0.003;
+                avatarModel.rotation.y = originalRotation.y + Math.sin(time * 2) * 0.05;
+                avatarModel.rotation.x = originalRotation.x + Math.sin(time * 1.5) * 0.02;
+                
+                requestAnimationFrame(animate);
+            };
+            
+            animate();
+        }
+
+        function animateMouthMorphs() {
+            if (!isSpeaking || !morphTargets) return;
+            
+            // Simulate lip sync with random mouth movements
+            const mouthMorphNames = ['mouthOpen', 'jawOpen', 'mouth_open', 'viseme_aa'];
+            const availableMorph = mouthMorphNames.find(name => 
+                morphTargets.morphTargetDictionary[name] !== undefined
+            );
+            
+            if (availableMorph) {
+                const morphIndex = morphTargets.morphTargetDictionary[availableMorph];
+                
+                // Animate mouth opening/closing
+                const animate = () => {
+                    if (!isSpeaking) return;
+                    
+                    const intensity = 0.3 + Math.random() * 0.4; // Random intensity
+                    const duration = 100 + Math.random() * 200; // Random duration
+                    
+                    // Open mouth
+                    const openTween = {
+                        start: morphTargets.morphTargetInfluences[morphIndex] || 0,
+                        end: intensity,
+                        duration: duration,
+                        startTime: Date.now()
+                    };
+                    
+                    const updateMouth = () => {
+                        if (!isSpeaking) {
+                            morphTargets.morphTargetInfluences[morphIndex] = 0;
+                            return;
+                        }
+                        
+                        const elapsed = Date.now() - openTween.startTime;
+                        const progress = Math.min(elapsed / openTween.duration, 1);
+                        
+                        if (progress < 0.5) {
+                            // Opening phase
+                            morphTargets.morphTargetInfluences[morphIndex] = 
+                                openTween.start + (openTween.end - openTween.start) * (progress * 2);
+                        } else {
+                            // Closing phase
+                            morphTargets.morphTargetInfluences[morphIndex] = 
+                                openTween.end * (2 - progress * 2);
+                        }
+                        
+                        if (progress >= 1) {
+                            // Start next mouth movement
+                            setTimeout(animate, 50 + Math.random() * 100);
+                        } else {
+                            requestAnimationFrame(updateMouth);
+                        }
+                    };
+                    
+                    updateMouth();
+                };
+                
+                animate();
+            }
+        }
+
+        function animateHeadBobbing() {
+            if (!isSpeaking || !avatarModel) return;
+            
+            // Simple head bobbing animation as fallback
+            const originalY = avatarModel.position.y;
+            const bobIntensity = 0.02;
+            const bobSpeed = 8;
+            
+            const animate = () => {
+                if (!isSpeaking) {
+                    avatarModel.position.y = originalY;
+                    return;
+                }
+                
+                const time = Date.now() * 0.01;
+                avatarModel.position.y = originalY + Math.sin(time * bobSpeed) * bobIntensity;
+                
+                requestAnimationFrame(animate);
+            };
+            
+            animate();
+        }
+
+        function createFallbackAvatar() {
+            const group = new THREE.Group();
+            
+            // Create a realistic face-focused avatar
+            const headGeometry = new THREE.SphereGeometry(0.3, 32, 32);
+            const headMaterial = new THREE.MeshLambertMaterial({ color: 0xfdbcb4 });
+            const head = new THREE.Mesh(headGeometry, headMaterial);
+            head.position.y = 1.65;
+            head.castShadow = true;
+            group.add(head);
+            
+            // Detailed eyes with pupils
+            const eyeWhiteGeometry = new THREE.SphereGeometry(0.06, 16, 16);
+            const eyeWhiteMaterial = new THREE.MeshLambertMaterial({ color: 0xffffff });
+            
+            const leftEyeWhite = new THREE.Mesh(eyeWhiteGeometry, eyeWhiteMaterial);
+            leftEyeWhite.position.set(-0.12, 1.7, 0.25);
+            leftEyeWhite.scale.z = 0.5; // Flatten to look more realistic
+            group.add(leftEyeWhite);
+            
+            const rightEyeWhite = new THREE.Mesh(eyeWhiteGeometry, eyeWhiteMaterial);
+            rightEyeWhite.position.set(0.12, 1.7, 0.25);
+            rightEyeWhite.scale.z = 0.5;
+            group.add(rightEyeWhite);
+            
+            // Pupils
+            const pupilGeometry = new THREE.SphereGeometry(0.03, 12, 12);
+            const pupilMaterial = new THREE.MeshLambertMaterial({ color: 0x1a1a1a });
+            
+            const leftPupil = new THREE.Mesh(pupilGeometry, pupilMaterial);
+            leftPupil.position.set(-0.12, 1.7, 0.28);
+            group.add(leftPupil);
+            
+            const rightPupil = new THREE.Mesh(pupilGeometry, pupilMaterial);
+            rightPupil.position.set(0.12, 1.7, 0.28);
+            group.add(rightPupil);
+            
+            // Expressive eyebrows
+            const browGeometry = new THREE.CylinderGeometry(0.025, 0.025, 0.12, 8);
+            const browMaterial = new THREE.MeshLambertMaterial({ color: 0x8B4513 });
+            
+            const leftBrow = new THREE.Mesh(browGeometry, browMaterial);
+            leftBrow.position.set(-0.12, 1.8, 0.22);
+            leftBrow.rotation.z = Math.PI / 2;
+            group.add(leftBrow);
+            
+            const rightBrow = new THREE.Mesh(browGeometry, browMaterial);
+            rightBrow.position.set(0.12, 1.8, 0.22);
+            rightBrow.rotation.z = Math.PI / 2;
+            group.add(rightBrow);
+            
+            // Realistic mouth that can animate properly
+            const mouthGeometry = new THREE.CylinderGeometry(0.08, 0.08, 0.03, 16);
+            const mouthMaterial = new THREE.MeshLambertMaterial({ color: 0xd2691e });
+            const mouth = new THREE.Mesh(mouthGeometry, mouthMaterial);
+            mouth.position.set(0, 1.55, 0.25);
+            mouth.rotation.x = Math.PI / 2;
+            group.add(mouth);
+            
+            // Upper and lower lips for more realistic animation
+            const lipGeometry = new THREE.CylinderGeometry(0.09, 0.09, 0.01, 16);
+            const lipMaterial = new THREE.MeshLambertMaterial({ color: 0xcd5c5c });
+            
+            const upperLip = new THREE.Mesh(lipGeometry, lipMaterial);
+            upperLip.position.set(0, 1.57, 0.26);
+            upperLip.rotation.x = Math.PI / 2;
+            group.add(upperLip);
+            
+            const lowerLip = new THREE.Mesh(lipGeometry, lipMaterial);
+            lowerLip.position.set(0, 1.53, 0.26);
+            lowerLip.rotation.x = Math.PI / 2;
+            group.add(lowerLip);
+            
+            // Nose
+            const noseGeometry = new THREE.ConeGeometry(0.03, 0.08, 8);
+            const noseMaterial = new THREE.MeshLambertMaterial({ color: 0xfdbcb4 });
+            const nose = new THREE.Mesh(noseGeometry, noseMaterial);
+            nose.position.set(0, 1.62, 0.28);
+            nose.rotation.x = Math.PI;
+            group.add(nose);
+            
+            // Minimal body (mostly out of frame)
+            const bodyGeometry = new THREE.CylinderGeometry(0.4, 0.45, 1.0, 12);
+            const bodyMaterial = new THREE.MeshLambertMaterial({ color: 0x2563eb });
+            const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
+            body.position.y = 0.8;
+            body.castShadow = true;
+            group.add(body);
+            
+            // Add animation data for realistic face animation
+            group.userData = { 
+                originalY: 0,
+                animationTime: 0,
+                mouth: mouth,
+                upperLip: upperLip,
+                lowerLip: lowerLip,
+                head: head,
+                leftEye: leftEyeWhite,
+                rightEye: rightEyeWhite,
+                leftPupil: leftPupil,
+                rightPupil: rightPupil,
+                leftBrow: leftBrow,
+                rightBrow: rightBrow
+            };
             
             avatarModel = group;
             scene.add(avatarModel);
-            debugLog('Fallback avatar created and added to scene!');
+            updateAvatarStatus('ready', 'Realistic avatar ready');
+            
+            console.log('🎭 Created realistic face-focused avatar with detailed features');
         }
 
+        function updateAvatarStatus(status, message) {
+            const indicator = elements.avatarStatus.querySelector('.status-indicator');
+            indicator.className = `status-indicator status-${status}`;
+            elements.avatarStatus.innerHTML = `<span class="status-indicator status-${status}"></span>${message}`;
+        }
+
+        // Animation Loop
         function animate() {
             requestAnimationFrame(animate);
+            
+            const delta = clock.getDelta();
             
             if (controls) {
                 controls.update();
             }
             
-            // Rotate the test cube
-            const testCube = scene.getObjectByName('testCube') || scene.children.find(child => child.geometry && child.geometry.type === 'BoxGeometry');
-            if (testCube) {
-                testCube.rotation.x += 0.01;
-                testCube.rotation.y += 0.01;
+            // Update avatar animations
+            if (animationMixer) {
+                animationMixer.update(delta);
+            }
+            
+            // Enhanced idle animations for fallback avatar
+            if (avatarModel && avatarModel.userData && avatarModel.userData.animationTime !== undefined) {
+                avatarModel.userData.animationTime += delta;
+                
+                if (!isSpeaking) {
+                    // Subtle breathing animation
+                    const breathe = Math.sin(avatarModel.userData.animationTime * 1.2) * 0.006;
+                    avatarModel.position.y = avatarModel.userData.originalY + breathe;
+                    
+                    // Natural head movement
+                    if (avatarModel.userData.head) {
+                        const time = avatarModel.userData.animationTime;
+                        avatarModel.userData.head.rotation.y = Math.sin(time * 0.25) * 0.03;
+                        avatarModel.userData.head.rotation.x = Math.sin(time * 0.3) * 0.015;
+                        avatarModel.userData.head.rotation.z = Math.sin(time * 0.2) * 0.01;
+                    }
+                    
+                    // Realistic blinking for fallback avatar
+                    if (avatarModel.userData.leftEye && avatarModel.userData.rightEye) {
+                        const blinkTime = avatarModel.userData.animationTime * 1.5;
+                        const blinkTrigger = Math.sin(blinkTime);
+                        
+                        // Blink every 3-4 seconds approximately
+                        if (blinkTrigger > 0.995) {
+                            // Quick blink
+                            avatarModel.userData.leftEye.scale.y = 0.05;
+                            avatarModel.userData.rightEye.scale.y = 0.05;
+                            if (avatarModel.userData.leftPupil) avatarModel.userData.leftPupil.scale.y = 0.05;
+                            if (avatarModel.userData.rightPupil) avatarModel.userData.rightPupil.scale.y = 0.05;
+                        } else {
+                            avatarModel.userData.leftEye.scale.y = 1;
+                            avatarModel.userData.rightEye.scale.y = 1;
+                            if (avatarModel.userData.leftPupil) avatarModel.userData.leftPupil.scale.y = 1;
+                            if (avatarModel.userData.rightPupil) avatarModel.userData.rightPupil.scale.y = 1;
+                        }
+                    }
+                    
+                    // Subtle eyebrow movements
+                    if (avatarModel.userData.leftBrow && avatarModel.userData.rightBrow) {
+                        const browTime = avatarModel.userData.animationTime * 0.6;
+                        const browMovement = Math.sin(browTime) * 0.008;
+                        avatarModel.userData.leftBrow.position.y = 1.8 + browMovement;
+                        avatarModel.userData.rightBrow.position.y = 1.8 + browMovement;
+                    }
+                } else {
+                    // Enhanced speaking animations for fallback avatar
+                    if (avatarModel.userData.mouth) {
+                        // More dynamic mouth movement during speech
+                        const speakTime = avatarModel.userData.animationTime * 8;
+                        const mouthScale = 1 + Math.abs(Math.sin(speakTime)) * 0.8;
+                        avatarModel.userData.mouth.scale.y = mouthScale;
+                        
+                        // Animate lips separately if available
+                        if (avatarModel.userData.upperLip && avatarModel.userData.lowerLip) {
+                            avatarModel.userData.upperLip.position.y = 1.57 + Math.sin(speakTime * 1.2) * 0.02;
+                            avatarModel.userData.lowerLip.position.y = 1.53 - Math.sin(speakTime * 1.1) * 0.02;
+                        }
+                    }
+                    
+                    // More expressive head movement during speech
+                    if (avatarModel.userData.head) {
+                        const speakTime = avatarModel.userData.animationTime * 3;
+                        avatarModel.userData.head.rotation.y = Math.sin(speakTime) * 0.05;
+                        avatarModel.userData.head.rotation.x = Math.sin(speakTime * 1.3) * 0.025;
+                    }
+                    
+                    // Dynamic eyebrow movement during speech
+                    if (avatarModel.userData.leftBrow && avatarModel.userData.rightBrow) {
+                        const browTime = avatarModel.userData.animationTime * 4;
+                        const browMovement = Math.sin(browTime) * 0.02;
+                        avatarModel.userData.leftBrow.position.y = 1.8 + browMovement;
+                        avatarModel.userData.rightBrow.position.y = 1.8 + browMovement;
+                    }
+                }
             }
             
             renderer.render(scene, camera);
         }
 
+        // Speech Recognition Setup
+        function initSpeechRecognition() {
+            if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+                elements.micButton.style.display = 'none';
+                elements.speechStatus.textContent = 'Speech recognition not supported';
+                return;
+            }
+            
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            recognition = new SpeechRecognition();
+            
+            recognition.continuous = true;
+            recognition.interimResults = true;
+            recognition.lang = 'en-US';
+            
+            recognition.onstart = () => {
+                isRecording = true;
+                elements.micButton.classList.add('recording');
+                elements.micButton.classList.add('hidden');
+                elements.stopMicButton.classList.remove('hidden');
+                elements.speechStatus.textContent = 'Listening...';
+            };
+            
+            recognition.onresult = (event) => {
+                let finalTranscript = '';
+                let interimTranscript = '';
+                
+                for (let i = event.resultIndex; i < event.results.length; i++) {
+                    const transcript = event.results[i][0].transcript;
+                    if (event.results[i].isFinal) {
+                        finalTranscript += transcript + ' ';
+                    } else {
+                        interimTranscript += transcript;
+                    }
+                }
+                
+                if (finalTranscript) {
+                    elements.answerInput.value += finalTranscript;
+                }
+                
+                elements.speechStatus.textContent = interimTranscript ? `Hearing: "${interimTranscript}"` : 'Listening...';
+            };
+            
+            recognition.onerror = (event) => {
+                console.error('Speech recognition error:', event.error);
+                elements.speechStatus.textContent = `Error: ${event.error}`;
+                stopRecording();
+            };
+            
+            recognition.onend = () => {
+                stopRecording();
+            };
+        }
+
+        function startRecording() {
+            if (recognition && !isRecording) {
+                recognition.start();
+            }
+        }
+
+        function stopRecording() {
+            if (recognition && isRecording) {
+                recognition.stop();
+            }
+            
+            isRecording = false;
+            elements.micButton.classList.remove('recording');
+            elements.micButton.classList.remove('hidden');
+            elements.stopMicButton.classList.add('hidden');
+            elements.speechStatus.textContent = '';
+        }
+
+        // Text-to-Speech Setup
+        function populateVoiceList() {
+            const voices = synth.getVoices();
+            elements.voiceSelect.innerHTML = '<option value="">Default Voice</option>';
+            
+            voices.forEach((voice, index) => {
+                if (voice.lang.startsWith('en')) {
+                    const option = document.createElement('option');
+                    option.value = index;
+                    option.textContent = `${voice.name} (${voice.lang})`;
+                    elements.voiceSelect.appendChild(option);
+                }
+            });
+        }
+
+        function speak(text, priority = false) {
+            if (synth.speaking && !priority) {
+                return;
+            }
+            
+            if (priority) {
+                synth.cancel();
+            }
+            
+            const utterance = new SpeechSynthesisUtterance(text);
+            
+            if (selectedVoice) {
+                utterance.voice = selectedVoice;
+            }
+            
+            utterance.rate = parseFloat(elements.speechRate.value);
+            utterance.pitch = 1;
+            utterance.volume = 0.8;
+            
+            // Start realistic lip-sync animation when speech begins
+            utterance.onstart = () => {
+                console.log('🎙️ Speech started - beginning realistic lip-sync');
+                startRealisticLipSync(text);
+            };
+            
+            // Stop lip-sync animation when speech ends
+            utterance.onend = () => {
+                console.log('🎙️ Speech ended - stopping lip-sync');
+                stopRealisticLipSync();
+            };
+            
+            // Handle speech errors
+            utterance.onerror = () => {
+                console.log('🎙️ Speech error - stopping lip-sync');
+                stopRealisticLipSync();
+            };
+            
+            synth.speak(utterance);
+        }
+
+        function startRealisticLipSync(text) {
+            if (!avatarModel) return;
+            
+            console.log('🗣️ Starting realistic lip-sync for:', text.substring(0, 50) + '...');
+            isSpeaking = true;
+            
+            // Start animation systems
+            startSpeakingAnimation();
+            
+            // Start advanced lip-sync based on speech content
+            startContentBasedLipSync(text);
+        }
+
+        function stopRealisticLipSync() {
+            if (!avatarModel) return;
+            
+            console.log('🔇 Stopping realistic lip-sync');
+            isSpeaking = false;
+            stopSpeakingAnimation();
+        }
+
+        function startContentBasedLipSync(text) {
+            if (!avatarModel) return;
+            
+            // Analyze text for phonemes and create realistic mouth movements
+            const words = text.toLowerCase().split(' ');
+            let wordIndex = 0;
+            const speechRate = parseFloat(elements.speechRate.value);
+            const baseDelay = 1000 / speechRate; // Adjust timing based on speech rate
+            
+            function speakNextWord() {
+                if (!isSpeaking || wordIndex >= words.length) return;
+                
+                const word = words[wordIndex];
+                const wordDuration = (word.length * 100) / speechRate; // Estimate word duration
+                
+                // Create mouth movements based on word characteristics
+                animateWordLipSync(word, wordDuration);
+                
+                wordIndex++;
+                
+                // Schedule next word
+                setTimeout(speakNextWord, wordDuration + (baseDelay * 0.1));
+            }
+            
+            // Start with a small delay to sync with speech synthesis
+            setTimeout(speakNextWord, 200);
+        }
+
+        function animateWordLipSync(word, duration) {
+            if (!avatarModel || !isSpeaking) return;
+            
+            // Analyze word for mouth shape requirements
+            const vowels = word.match(/[aeiou]/g) || [];
+            const consonants = word.match(/[bcdfghjklmnpqrstvwxyz]/g) || [];
+            
+            // Determine mouth opening intensity based on vowels and consonants
+            let maxOpening = 0.3; // Base opening
+            
+            // Vowels require more mouth opening
+            if (vowels.includes('a') || vowels.includes('o')) maxOpening = 0.7;
+            else if (vowels.includes('e') || vowels.includes('i')) maxOpening = 0.5;
+            else if (vowels.includes('u')) maxOpening = 0.4;
+            
+            // Create realistic mouth movement pattern
+            const movements = [];
+            const numMovements = Math.max(2, Math.min(vowels.length + consonants.length, 6));
+            
+            for (let i = 0; i < numMovements; i++) {
+                const intensity = (Math.random() * 0.4 + 0.3) * maxOpening;
+                const timing = (duration / numMovements) * i;
+                movements.push({ intensity, timing });
+            }
+            
+            // Execute mouth movements
+            movements.forEach(movement => {
+                setTimeout(() => {
+                    if (isSpeaking) {
+                        animateMouthToIntensity(movement.intensity, 80);
+                    }
+                }, movement.timing);
+            });
+        }
+
+        function animateMouthToIntensity(targetIntensity, duration) {
+            if (!avatarModel || !isSpeaking) return;
+            
+            if (morphTargets) {
+                // Use morph targets for realistic mouth animation
+                animateMorphToIntensity(targetIntensity, duration);
+            } else if (avatarModel.userData && avatarModel.userData.mouth) {
+                // Use fallback mouth scaling
+                animateFallbackMouthToIntensity(targetIntensity, duration);
+            }
+        }
+
+        function animateMorphToIntensity(targetIntensity, duration) {
+            const mouthMorphNames = ['mouthOpen', 'jawOpen', 'mouth_open', 'viseme_aa', 'viseme_E'];
+            const availableMorph = mouthMorphNames.find(name => 
+                morphTargets.morphTargetDictionary[name] !== undefined
+            );
+            
+            if (!availableMorph) return;
+            
+            const morphIndex = morphTargets.morphTargetDictionary[availableMorph];
+            const startIntensity = morphTargets.morphTargetInfluences[morphIndex] || 0;
+            const startTime = Date.now();
+            
+            function updateMorph() {
+                if (!isSpeaking) {
+                    morphTargets.morphTargetInfluences[morphIndex] = 0;
+                    return;
+                }
+                
+                const elapsed = Date.now() - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+                
+                // Smooth interpolation to target
+                const currentIntensity = startIntensity + (targetIntensity - startIntensity) * easeInOut(progress);
+                morphTargets.morphTargetInfluences[morphIndex] = currentIntensity;
+                
+                if (progress < 1) {
+                    requestAnimationFrame(updateMorph);
+                } else {
+                    // Close mouth after opening
+                    setTimeout(() => {
+                        if (isSpeaking) {
+                            animateMorphToIntensity(0, duration * 0.6);
+                        }
+                    }, 50);
+                }
+            }
+            
+            updateMorph();
+        }
+
+        function animateFallbackMouthToIntensity(targetIntensity, duration) {
+            const mouth = avatarModel.userData.mouth;
+            if (!mouth) return;
+            
+            const startScale = mouth.scale.y;
+            const targetScale = 1 + targetIntensity * 2; // Scale mouth based on intensity
+            const startTime = Date.now();
+            
+            function updateMouth() {
+                if (!isSpeaking) {
+                    mouth.scale.y = 1;
+                    return;
+                }
+                
+                const elapsed = Date.now() - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+                
+                const currentScale = startScale + (targetScale - startScale) * easeInOut(progress);
+                mouth.scale.y = currentScale;
+                
+                if (progress < 1) {
+                    requestAnimationFrame(updateMouth);
+                } else {
+                    // Return to normal
+                    setTimeout(() => {
+                        if (isSpeaking) {
+                            animateFallbackMouthToIntensity(0, duration * 0.6);
+                        }
+                    }, 50);
+                }
+            }
+            
+            updateMouth();
+        }
+
+        function easeInOut(t) {
+            return t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
+        }
+
+        // Event Listeners
+        function setupEventListeners() {
+            // Voice selection
+            elements.voiceSelect.addEventListener('change', (e) => {
+                const voices = synth.getVoices();
+                selectedVoice = e.target.value ? voices[e.target.value] : null;
+            });
+
+            // Speech recognition
+            elements.micButton.addEventListener('click', startRecording);
+            elements.stopMicButton.addEventListener('click', stopRecording);
+
+            // Interview controls
+            elements.startButton.addEventListener('click', startInterview);
+            elements.answerButton.addEventListener('click', submitAnswer);
+            elements.nextButton.addEventListener('click', nextQuestion);
+            elements.repeatQuestionButton.addEventListener('click', () => {
+                if (currentQuestion) {
+                    speak(currentQuestion, true);
+                }
+            });
+
+            // Window resize
+            window.addEventListener('resize', onWindowResize);
+            
+            // Voice list population on load
+            if (synth.onvoiceschanged !== undefined) {
+                synth.onvoiceschanged = populateVoiceList;
+            }
+        }
+
         function onWindowResize() {
-            const width = avatarCanvas.clientWidth;
-            const height = avatarCanvas.clientHeight;
+            const width = elements.avatarCanvas.clientWidth;
+            const height = elements.avatarCanvas.clientHeight;
             
             camera.aspect = width / height;
             camera.updateProjectionMatrix();
             renderer.setSize(width, height);
-            
-            debugLog(`Resized to: ${width}x${height}`);
         }
 
-        // Web Speech API for voice
-        const synth = window.speechSynthesis;
-
-        function speak(text) {
-            if (synth.speaking) {
-                console.error('speechSynthesis.speaking');
-                return;
-            }
-            const utterance = new SpeechSynthesisUtterance(text);
-            synth.speak(utterance);
-        }
-
-        // Event Listeners
-        testAvatarButton.addEventListener('click', () => {
-            debugLog('Test Avatar button clicked');
-            loadAvatar();
-        });
-
-        startButton.addEventListener('click', async () => {
-            debugLog('Start button clicked');
-            const jobTitle = jobTitleInput.value.trim();
-            const company = companyInput.value.trim();
+        // Interview Logic
+        async function startInterview() {
+            const jobTitle = elements.jobTitleInput.value.trim();
+            const company = elements.companyInput.value.trim();
 
             if (!jobTitle || !company) {
-                alert('Please enter job title and company.');
+                showError('Please enter both job title and company.');
                 return;
             }
 
-            // Load avatar if not already loaded
-            if (!avatarModel) {
-                loadAvatar();
-            }
-
+            // Reset state
             interviewQuestions = [];
             currentQuestionIndex = 0;
             allFeedback = [];
-            questionDisplay.textContent = '';
-            answerInput.value = '';
-            answerInput.classList.remove('hidden');
-            answerButton.classList.remove('hidden');
-            aiFeedback.textContent = '';
+            currentQuestion = '';
+            
+            clearFeedback();
+            showLoading(true);
+            elements.interviewArea.classList.remove('hidden');
 
-            const finalEvalButton = document.getElementById('finalEvalButton');
-            if (finalEvalButton) interviewArea.removeChild(finalEvalButton);
-            const finalEvalDisplay = interviewArea.querySelector('.bg-yellow-200');
-            if (finalEvalDisplay) interviewArea.removeChild(finalEvalDisplay);
-
-            loadingIndicator.classList.remove('hidden');
-            errorDisplay.classList.add('hidden');
-            interviewArea.classList.remove('hidden');
-
-            // Mock questions for testing (replace with your API call)
             try {
-                // Simulating API call with mock data
-                debugLog('Simulating API call for questions...');
-                await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate delay
-                
-                interviewQuestions = [
-                    `Tell me about yourself and why you're interested in the ${jobTitle} position at ${company}.`,
-                    `What technical skills do you have that make you a good fit for this role?`,
-                    `Describe a challenging project you've worked on and how you overcame obstacles.`,
-                    `Why do you want to work at ${company} specifically?`,
-                    `Where do you see yourself in 5 years?`
-                ];
-                
-                loadingIndicator.classList.add('hidden');
-                displayQuestion();
-                debugLog('Questions loaded successfully');
-                
-                /*
-                // Uncomment this for real API integration
+                console.log('Fetching questions from backend...');
                 const response = await fetch('http://127.0.0.1:5000/get_questions', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ job_title: jobTitle, company: company }),
                 });
-                if (!response.ok) throw new Error((await response.json()).error || 'Failed to fetch questions.');
+                
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    throw new Error(errorData.error || `HTTP ${response.status}: Failed to fetch questions`);
+                }
+                
                 const data = await response.json();
                 interviewQuestions = data.questions;
-                loadingIndicator.classList.add('hidden');
+                
+                if (!interviewQuestions || interviewQuestions.length === 0) {
+                    throw new Error('No questions received from the API');
+                }
+                
+                console.log(`Received ${interviewQuestions.length} questions from backend`);
+                showLoading(false);
                 displayQuestion();
-                */
+                
             } catch (error) {
-                console.error('Error fetching questions:', error);
-                errorDisplay.textContent = `Error: ${error.message}`;
-                errorDisplay.classList.remove('hidden');
-                loadingIndicator.classList.add('hidden');
+                console.error('Error starting interview:', error);
+                
+                // Fallback to mock questions if API fails
+                console.log('Falling back to mock questions...');
+                showError(`Backend unavailable. Using sample questions. Error: ${error.message}`);
+                
+                interviewQuestions = [
+                    `Tell me about yourself and why you're interested in the ${jobTitle} position at ${company}.`,
+                    `What technical skills and experience make you a strong candidate for this role?`,
+                    `Describe a challenging project you've worked on. What obstacles did you face and how did you overcome them?`,
+                    `Why specifically do you want to work at ${company}? What attracts you to our company culture and mission?`,
+                    `Where do you see your career progressing in the next 5 years, and how does this role fit into those goals?`
+                ];
+                
+                showLoading(false);
+                displayQuestion();
             }
-        });
+        }
 
-        answerButton.addEventListener('click', async () => {
-            if (!interviewQuestions.length) return;
-            const currentQuestion = interviewQuestions[currentQuestionIndex];
-            const answer = answerInput.value.trim();
-            if (!answer) { 
-                alert('Please enter your answer.'); 
-                return; 
+        async function submitAnswer() {
+            const answer = elements.answerInput.value.trim();
+            if (!answer) {
+                showError('Please provide an answer before submitting.');
+                return;
             }
 
-            answerButton.disabled = true;
-            nextButton.classList.add('hidden');
-            aiFeedback.textContent = 'Evaluating...';
-            speak('Evaluating...');
+            elements.answerButton.disabled = true;
+            elements.nextButton.classList.add('hidden');
+            showFeedback('Evaluating your answer...', true);
 
             try {
-                // Mock evaluation (replace with your API call)
-                await new Promise(resolve => setTimeout(resolve, 1500)); // Simulate delay
-                const mockFeedback = `Good answer! You demonstrated understanding of the key concepts. Consider providing more specific examples next time.`;
-                
-                aiFeedback.textContent = mockFeedback;
-                speak(mockFeedback);
-                allFeedback.push({ question: currentQuestion, answer: answer, feedback: mockFeedback });
-                nextButton.classList.remove('hidden');
-                answerButton.disabled = false;
-                
-                /*
-                // Uncomment for real API integration
+                console.log('Submitting answer to backend...');
                 const response = await fetch('http://127.0.0.1:5000/evaluate_answer', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ question: currentQuestion, answer: answer }),
+                    body: JSON.stringify({ 
+                        question: currentQuestion, 
+                        answer: answer 
+                    }),
                 });
-                if (!response.ok) throw new Error((await response.json()).error || 'Failed to evaluate answer.');
+                
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    throw new Error(errorData.error || `HTTP ${response.status}: Failed to evaluate answer`);
+                }
+                
                 const data = await response.json();
-                aiFeedback.textContent = data.evaluation;
-                speak(data.evaluation);
-                allFeedback.push({ question: currentQuestion, answer: answer, feedback: data.evaluation });
-                nextButton.classList.remove('hidden');
-                answerButton.disabled = false;
-                */
+                const feedback = data.evaluation;
+                
+                console.log('Received evaluation from backend');
+                showFeedback(feedback);
+                speak(feedback);
+                
+                allFeedback.push({ 
+                    question: currentQuestion, 
+                    answer: answer, 
+                    feedback: feedback 
+                });
+                
+                elements.nextButton.classList.remove('hidden');
+                
             } catch (error) {
                 console.error('Error evaluating answer:', error);
-                aiFeedback.textContent = `Error: ${error.message}`;
-                speak(`Error: ${error.message}`);
-                answerButton.disabled = false;
+                
+                // Fallback to mock evaluation if API fails
+                console.log('Falling back to mock evaluation...');
+                showError(`Backend evaluation failed. Using sample feedback. Error: ${error.message}`);
+                
+                const mockFeedback = generateMockFeedback(answer);
+                showFeedback(mockFeedback);
+                speak(mockFeedback);
+                
+                allFeedback.push({ 
+                    question: currentQuestion, 
+                    answer: answer, 
+                    feedback: mockFeedback 
+                });
+                
+                elements.nextButton.classList.remove('hidden');
+                
+            } finally {
+                elements.answerButton.disabled = false;
             }
-        });
+        }
 
-        nextButton.addEventListener('click', () => {
+        function nextQuestion() {
             currentQuestionIndex++;
-            answerInput.value = '';
-            aiFeedback.textContent = '';
-            nextButton.classList.add('hidden');
+            elements.answerInput.value = '';
+            clearFeedback();
+            elements.nextButton.classList.add('hidden');
+            
             if (currentQuestionIndex < interviewQuestions.length) {
                 displayQuestion();
             } else {
-                questionDisplay.textContent = 'Interview Finished!';
-                speak('Interview Finished!');
-                answerInput.classList.add('hidden');
-                answerButton.classList.add('hidden');
-
-                const finalEvalButton = document.createElement('button');
-                finalEvalButton.textContent = 'Get Final Evaluation';
-                finalEvalButton.className = 'bg-purple-500 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline mt-4';
-                finalEvalButton.id = 'finalEvalButton';
-                finalEvalButton.addEventListener('click', getFinalEvaluation);
-                interviewArea.appendChild(finalEvalButton);
-            }
-        });
-
-        async function getFinalEvaluation() {
-            loadingIndicator.classList.remove('hidden');
-            try {
-                // Mock final evaluation
-                await new Promise(resolve => setTimeout(resolve, 2000));
-                const mockEvaluation = `Overall Performance: Good\n\nStrengths:\n- Clear communication\n- Relevant experience\n- Good technical knowledge\n\nAreas for Improvement:\n- Provide more specific examples\n- Show more enthusiasm for the company\n- Practice behavioral questions\n\nRecommendation: You're on the right track! Keep practicing and focus on storytelling with specific examples.`;
-                
-                const finalEvalDiv = document.createElement('div');
-                finalEvalDiv.className = 'mt-4 p-3 bg-yellow-200 rounded text-gray-700';
-                finalEvalDiv.style.whiteSpace = 'pre-line';
-                finalEvalDiv.textContent = `Final Evaluation:\n${mockEvaluation}`;
-                speak(`Final Evaluation: ${mockEvaluation}`);
-                interviewArea.appendChild(finalEvalDiv);
-                
-                /*
-                // Uncomment for real API integration
-                const response = await fetch('http://127.0.0.1:5000/get_final_evaluation', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                });
-                if (!response.ok) throw new Error((await response.json()).error || 'Failed to get final evaluation.');
-                const data = await response.json();
-                const finalEvalDiv = document.createElement('div');
-                finalEvalDiv.className = 'mt-4 p-3 bg-yellow-200 rounded text-gray-700';
-                finalEvalDiv.textContent = `Final Evaluation:\n${data.final_evaluation}`;
-                speak(`Final Evaluation:\n${data.final_evaluation}`);
-                interviewArea.appendChild(finalEvalDiv);
-                */
-            } catch (error) {
-                console.error('Error getting final evaluation:', error);
-                errorDisplay.textContent = `Error getting final evaluation: ${error.message}`;
-                speak(`Error getting final evaluation: ${error.message}`);
-                errorDisplay.classList.remove('hidden');
-            } finally {
-                loadingIndicator.classList.add('hidden');
+                finishInterview();
             }
         }
 
         function displayQuestion() {
             if (currentQuestionIndex < interviewQuestions.length) {
-                questionDisplay.textContent = `Question ${currentQuestionIndex + 1}: ${interviewQuestions[currentQuestionIndex]}`;
-                speak(`Question ${currentQuestionIndex + 1}: ${interviewQuestions[currentQuestionIndex]}`);
+                currentQuestion = interviewQuestions[currentQuestionIndex];
+                const questionText = `Question ${currentQuestionIndex + 1}: ${currentQuestion}`;
+                
+                elements.questionDisplay.textContent = questionText;
+                speak(currentQuestion);
             }
         }
 
-        // Initialize everything
-        window.addEventListener('resize', onWindowResize, false);
-        
-        // Start Three.js immediately
-        initThreeJS();
-        
-        debugLog('Application initialized');
+        function finishInterview() {
+            elements.questionDisplay.textContent = 'Interview Complete! 🎉';
+            elements.answerInput.classList.add('hidden');
+            elements.answerButton.classList.add('hidden');
+            elements.repeatQuestionButton.classList.add('hidden');
+            
+            speak('Congratulations! You have completed the interview. Generating your final evaluation...');
+            
+            // Generate final evaluation from backend
+            getFinalEvaluation();
+        }
+
+        async function getFinalEvaluation() {
+            showFeedback('Generating final evaluation...', true);
+            
+            try {
+                console.log('Requesting final evaluation from backend...');
+                const response = await fetch('http://127.0.0.1:5000/get_final_evaluation', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                });
+                
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    throw new Error(errorData.error || `HTTP ${response.status}: Failed to get final evaluation`);
+                }
+                
+                const data = await response.json();
+                const finalEval = data.final_evaluation;
+                
+                console.log('Received final evaluation from backend');
+                showFeedback(finalEval);
+                speak(finalEval);
+                
+            } catch (error) {
+                console.error('Error getting final evaluation:', error);
+                
+                // Fallback to mock evaluation if API fails
+                console.log('Falling back to mock final evaluation...');
+                showError(`Backend final evaluation failed. Using sample evaluation. Error: ${error.message}`);
+                
+                const mockFinalEval = generateFinalEvaluation();
+                showFeedback(mockFinalEval);
+                speak(mockFinalEval);
+            }
+        }
+
+        // Helper Functions
+        function generateMockFeedback(answer) {
+            const feedbacks = [
+                "Excellent answer! You provided specific examples and demonstrated clear understanding. Consider adding more quantifiable results to strengthen your response.",
+                "Good response! You covered the key points well. To improve, try to be more concise and focus on the most impactful aspects of your experience.",
+                "Solid answer! Your enthusiasm comes through clearly. Consider providing more specific technical details to showcase your expertise.",
+                "Strong response! You structured your answer well. Adding a brief example of measurable impact would make it even more compelling.",
+                "Great job! You demonstrated good self-awareness. Consider connecting your answer more explicitly to the role requirements."
+            ];
+            return feedbacks[Math.floor(Math.random() * feedbacks.length)];
+        }
+
+        function generateFinalEvaluation() {
+            return `Final Evaluation:\n\nOverall Performance: Strong\n\n✅ Strengths:\n• Clear communication style\n• Relevant experience highlighted\n• Good engagement with questions\n• Professional demeanor\n\n📈 Areas for Growth:\n• Provide more specific metrics and results\n• Practice the STAR method for behavioral questions\n• Research company-specific talking points\n\n🎯 Recommendation: You're well-prepared for interviews! Continue practicing with specific examples and quantifiable achievements to make your responses even more impactful.`;
+        }
+
+        function showLoading(show) {
+            elements.loadingIndicator.classList.toggle('hidden', !show);
+        }
+
+        function showError(message) {
+            elements.errorDisplay.textContent = message;
+            elements.errorDisplay.classList.remove('hidden');
+            setTimeout(() => {
+                elements.errorDisplay.classList.add('hidden');
+            }, 5000);
+        }
+
+        function showFeedback(message, isLoading = false) {
+            elements.aiFeedback.textContent = message;
+            elements.aiFeedback.style.fontStyle = isLoading ? 'italic' : 'normal';
+        }
+
+        function clearFeedback() {
+            elements.aiFeedback.textContent = 'Your feedback will appear here...';
+            elements.aiFeedback.style.fontStyle = 'italic';
+        }
+
+        // Initialize the application
+        initApp();
     </script>
 </body>
 </html>

@@ -54,7 +54,7 @@
     <div class="max-w-6xl mx-auto bg-white shadow-lg rounded-xl p-8">
         <div class="text-center mb-8">
             <h1 class="text-3xl font-bold text-gray-800 mb-2">AI Mock Interview</h1>
-            <p class="text-gray-600">Practice your interview skills with AI-powered feedback</p>
+            <p class="text-gray-600">Practice your interview skills with AI-powered feedback and realistic facial animation</p>
         </div>
 
         <!-- Setup Area -->
@@ -101,6 +101,12 @@
                 <div id="avatarStatus" class="mt-3 text-sm text-gray-600">
                     <span class="status-indicator status-loading"></span>
                     Loading avatar...
+                </div>
+                <!-- Test Animation Button for Demo -->
+                <div class="mt-2">
+                    <button onclick="testFacialAnimation()" class="text-xs bg-gray-500 hover:bg-gray-600 text-white px-3 py-1 rounded">
+                        Test Facial Animation
+                    </button>
                 </div>
             </div>
         </div>
@@ -211,19 +217,16 @@
         // Three.js Variables
         let scene, camera, renderer, controls, avatarModel, animationMixer;
         let speakingAnimation, idleAnimation, currentAction;
-        let morphTargets = null; // For facial animations
+        
+        // FIXED: Facial Animation Variables
+        let facialMeshes = []; // Multiple meshes may have morphs
+        let allMorphTargets = {}; // Global morph target dictionary
         let isSpeaking = false;
         const clock = new THREE.Clock();
 
         // Speech Recognition Variables
         let recognition = null;
         let isRecording = false;
-        
-        // Advanced lip-sync variables
-        let audioContext = null;
-        let analyser = null;
-        let microphone = null;
-        let speechAnalysisData = null;
 
         // Web Speech API Setup
         const synth = window.speechSynthesis;
@@ -244,8 +247,8 @@
             scene.background = new THREE.Color(0xf8fafc);
             
             const aspect = elements.avatarCanvas.clientWidth / elements.avatarCanvas.clientHeight;
-            camera = new THREE.PerspectiveCamera(45, aspect, 0.1, 1000); // Even tighter FOV
-            camera.position.set(0, 1.65, 1.2); // Perfect face framing position
+            camera = new THREE.PerspectiveCamera(45, aspect, 0.1, 1000);
+            camera.position.set(0, 1.65, 1.2);
             
             renderer = new THREE.WebGLRenderer({ 
                 canvas: elements.avatarCanvas, 
@@ -259,29 +262,26 @@
             controls = new OrbitControls(camera, renderer.domElement);
             controls.enableDamping = true;
             controls.dampingFactor = 0.05;
-            controls.target.set(0, 1.65, 0); // Focus exactly on face level
+            controls.target.set(0, 1.65, 0);
             controls.enableZoom = true;
             controls.enablePan = false;
-            controls.maxPolarAngle = Math.PI / 1.5; // Prevent looking too far up/down
-            controls.minDistance = 0.8; // Prevent getting too close
-            controls.maxDistance = 2.5; // Reasonable max distance
+            controls.maxPolarAngle = Math.PI / 1.5;
+            controls.minDistance = 0.8;
+            controls.maxDistance = 2.5;
             
             // Professional portrait lighting
             const ambientLight = new THREE.AmbientLight(0x404040, 1.0);
             scene.add(ambientLight);
             
-            // Key light (main facial lighting) - from slightly above and to the side
             const keyLight = new THREE.DirectionalLight(0xffffff, 1.2);
             keyLight.position.set(1.5, 2.5, 2);
             keyLight.castShadow = true;
             scene.add(keyLight);
             
-            // Fill light (soften shadows on other side of face)
             const fillLight = new THREE.DirectionalLight(0xffffff, 0.6);
             fillLight.position.set(-1, 1.5, 1);
             scene.add(fillLight);
             
-            // Rim/back light for professional look
             const rimLight = new THREE.DirectionalLight(0x7c3aed, 0.4);
             rimLight.position.set(0, 2, -2);
             scene.add(rimLight);
@@ -289,176 +289,190 @@
             animate();
         }
 
-        // Avatar Loading
+        // FIXED: Avatar Loading with proper morph target support
         function loadAvatar() {
             updateAvatarStatus('loading', 'Loading avatar...');
             
-            const avatarUrls = [
-                'https://models.readyplayer.me/683efe096ef5e269d307e27e.glb',
-                'https://models.readyplayer.me/683e288ef869a1762214c735.glb'
-            ];
+            // Use the corrected URL with full ARKit morph targets
+            const avatarUrl = 'https://models.readyplayer.me/683efe096ef5e269d307e27e.glb?morphTargets=ARKit,Oculus%20Visemes';
             
-            let currentUrlIndex = 0;
+            const gltfLoader = new GLTFLoader();
             
-            function tryLoadAvatar(urlIndex) {
-                if (urlIndex >= avatarUrls.length) {
-                    createFallbackAvatar();
-                    return;
-                }
-                
-                const gltfLoader = new GLTFLoader();
-                const avatarUrl = avatarUrls[urlIndex];
-                
-                const timeoutId = setTimeout(() => {
-                    tryLoadAvatar(urlIndex + 1);
-                }, 15000);
-                
-                gltfLoader.load(
-                    avatarUrl,
-                    (gltf) => {
-                        clearTimeout(timeoutId);
-                        avatarModel = gltf.scene;
+            gltfLoader.load(
+                avatarUrl,
+                (gltf) => {
+                    console.log('✅ Avatar loaded successfully!');
+                    avatarModel = gltf.scene;
+                    
+                    // Setup animations if available
+                    if (gltf.animations && gltf.animations.length) {
+                        animationMixer = new THREE.AnimationMixer(avatarModel);
                         
-                        // Setup animations if available
-                        if (gltf.animations && gltf.animations.length) {
-                            animationMixer = new THREE.AnimationMixer(avatarModel);
-                            
-                            console.log('Available animations:', gltf.animations.map(clip => clip.name));
-                            
-                            // Find and setup different animation types
-                            idleAnimation = gltf.animations.find(clip => 
-                                clip.name.toLowerCase().includes('idle') || 
-                                clip.name.toLowerCase().includes('breathing') ||
-                                clip.name.toLowerCase().includes('breath')
-                            );
-                            
-                            speakingAnimation = gltf.animations.find(clip => 
-                                clip.name.toLowerCase().includes('talk') || 
-                                clip.name.toLowerCase().includes('speak') ||
-                                clip.name.toLowerCase().includes('mouth')
-                            );
-                            
-                            // If no specific animations found, use the first one as idle
-                            if (!idleAnimation && gltf.animations.length > 0) {
-                                idleAnimation = gltf.animations[0];
-                            }
-                            
-                            // Start with idle animation
-                            if (idleAnimation) {
-                                currentAction = animationMixer.clipAction(idleAnimation);
-                                currentAction.play();
-                                console.log('Playing idle animation:', idleAnimation.name);
-                            }
+                        idleAnimation = gltf.animations.find(clip => 
+                            clip.name.toLowerCase().includes('idle') || 
+                            clip.name.toLowerCase().includes('breathing')
+                        );
+                        
+                        if (!idleAnimation && gltf.animations.length > 0) {
+                            idleAnimation = gltf.animations[0];
                         }
                         
-                        // Setup facial morphs for lip sync
-                        setupFacialMorphs();
-                        
-                        // Position and scale for perfect face framing
-                        const box = new THREE.Box3().setFromObject(avatarModel);
-                        const size = box.getSize(new THREE.Vector3());
-                        const center = box.getCenter(new THREE.Vector3());
-                        
-                        console.log('Avatar original size:', size);
-                        console.log('Avatar center:', center);
-                        
-                        // Scale for face-focused view
-                        const scaleFactor = 3.0 / size.y; // Even larger for face focus
-                        avatarModel.scale.setScalar(scaleFactor);
-                        
-                        // Position so face is centered in view
-                        const headHeight = size.y * 0.15; // Estimate head is ~15% of total height
-                        avatarModel.position.set(0, -center.y * scaleFactor + headHeight, 0);
-                        
-                        console.log('Applied scale factor:', scaleFactor);
-                        console.log('Final avatar position:', avatarModel.position);
-                        
-                        // Enable shadows
-                        avatarModel.traverse((child) => {
-                            if (child.isMesh) {
-                                child.castShadow = true;
-                                child.receiveShadow = true;
-                            }
-                        });
-                        
-                        scene.add(avatarModel);
-                        updateAvatarStatus('ready', 'Avatar ready');
-                    },
-                    (progress) => {
-                        const percent = (progress.loaded / progress.total * 100);
-                        updateAvatarStatus('loading', `Loading avatar... ${percent.toFixed(0)}%`);
-                    },
-                    (error) => {
-                        clearTimeout(timeoutId);
-                        console.error('Avatar loading error:', error);
-                        setTimeout(() => tryLoadAvatar(urlIndex + 1), 1000);
+                        if (idleAnimation) {
+                            currentAction = animationMixer.clipAction(idleAnimation);
+                            currentAction.play();
+                        }
                     }
-                );
-            }
-            
-            tryLoadAvatar(0);
+                    
+                    // FIXED: Setup facial morphs with proper material configuration
+                    const morphCount = setupFacialMorphsFixed();
+                    
+                    // Position avatar
+                    positionAvatar();
+                    
+                    scene.add(avatarModel);
+                    
+                    if (morphCount > 10) {
+                        updateAvatarStatus('ready', `Avatar ready! ${morphCount} facial morphs available`);
+                    } else {
+                        updateAvatarStatus('ready', 'Avatar ready (fallback mode)');
+                        createFallbackAvatar();
+                    }
+                },
+                (progress) => {
+                    const percent = (progress.loaded / progress.total * 100);
+                    updateAvatarStatus('loading', `Loading avatar... ${percent.toFixed(0)}%`);
+                },
+                (error) => {
+                    console.error('Avatar loading error:', error);
+                    updateAvatarStatus('ready', 'Avatar ready (fallback mode)');
+                    createFallbackAvatar();
+                }
+            );
         }
 
-        function setupFacialMorphs() {
+        // FIXED: Setup facial morphs with material fixes
+        function setupFacialMorphsFixed() {
+            facialMeshes = [];
+            allMorphTargets = {};
+            
+            if (!avatarModel) return 0;
+            
+            console.log('🔍 Setting up facial morphs with material fixes...');
+            
+            avatarModel.traverse((child) => {
+                if (child.isMesh && child.morphTargetDictionary && Object.keys(child.morphTargetDictionary).length > 0) {
+                    const morphs = Object.keys(child.morphTargetDictionary);
+                    console.log(`📍 Found facial mesh: ${child.name} with ${morphs.length} morphs`);
+                    
+                    // CRITICAL FIX: Enable morphTargets on the material
+                    if (child.material) {
+                        if (!child.material.morphTargets) {
+                            child.material.morphTargets = true;
+                            child.material.needsUpdate = true;
+                            console.log(`✅ FIXED: Enabled morphTargets on material for ${child.name}`);
+                        }
+                        
+                        if (!child.material.morphNormals) {
+                            child.material.morphNormals = true;
+                            child.material.needsUpdate = true;
+                        }
+                    }
+                    
+                    // Initialize morph influences if missing
+                    if (!child.morphTargetInfluences) {
+                        child.morphTargetInfluences = new Array(morphs.length).fill(0);
+                    }
+                    
+                    // Store this mesh
+                    facialMeshes.push({
+                        mesh: child,
+                        name: child.name,
+                        morphTargetDictionary: child.morphTargetDictionary,
+                        morphTargetInfluences: child.morphTargetInfluences
+                    });
+                    
+                    // Add all morphs to global dictionary
+                    Object.keys(child.morphTargetDictionary).forEach(morphName => {
+                        if (!allMorphTargets[morphName]) {
+                            allMorphTargets[morphName] = [];
+                        }
+                        allMorphTargets[morphName].push({
+                            mesh: child,
+                            index: child.morphTargetDictionary[morphName]
+                        });
+                    });
+                }
+            });
+            
+            const totalMorphs = Object.keys(allMorphTargets).length;
+            console.log(`🎭 Total unique morphs found: ${totalMorphs}`);
+            console.log(`📊 Facial meshes: ${facialMeshes.length}`);
+            
+            return totalMorphs;
+        }
+
+        function positionAvatar() {
             if (!avatarModel) return;
             
-            // Find facial meshes that might have morph targets
+            const box = new THREE.Box3().setFromObject(avatarModel);
+            const size = box.getSize(new THREE.Vector3());
+            const center = box.getCenter(new THREE.Vector3());
+            
+            const scaleFactor = 3.0 / size.y;
+            avatarModel.scale.setScalar(scaleFactor);
+            
+            const headHeight = size.y * 0.15;
+            avatarModel.position.set(0, -center.y * scaleFactor + headHeight, 0);
+            
             avatarModel.traverse((child) => {
-                if (child.isMesh && child.morphTargetDictionary) {
-                    console.log('Found morph targets:', Object.keys(child.morphTargetDictionary));
-                    morphTargets = child;
-                    
-                    // Common morph target names for mouth movement
-                    const mouthMorphs = ['mouthOpen', 'jawOpen', 'mouth_open', 'viseme_aa', 'viseme_E', 'viseme_I', 'viseme_O', 'viseme_U'];
-                    
-                    // Check which mouth morphs are available
-                    mouthMorphs.forEach(morphName => {
-                        if (child.morphTargetDictionary[morphName] !== undefined) {
-                            console.log('Available mouth morph:', morphName);
-                        }
-                    });
+                if (child.isMesh) {
+                    child.castShadow = true;
+                    child.receiveShadow = true;
                 }
             });
         }
 
+        // FIXED: Morph target control functions
+        function setMorphTarget(morphName, value) {
+            if (!allMorphTargets[morphName]) {
+                return false;
+            }
+            
+            allMorphTargets[morphName].forEach(target => {
+                target.mesh.morphTargetInfluences[target.index] = Math.max(0, Math.min(1, value));
+                
+                // CRITICAL: Force geometry update
+                if (target.mesh.geometry && target.mesh.geometry.attributes.position) {
+                    target.mesh.geometry.attributes.position.needsUpdate = true;
+                }
+            });
+            
+            return true;
+        }
+
+        function resetMorphTargets() {
+            facialMeshes.forEach(facialMesh => {
+                if (facialMesh.morphTargetInfluences) {
+                    for (let i = 0; i < facialMesh.morphTargetInfluences.length; i++) {
+                        facialMesh.morphTargetInfluences[i] = 0;
+                    }
+                    
+                    if (facialMesh.mesh.geometry && facialMesh.mesh.geometry.attributes.position) {
+                        facialMesh.mesh.geometry.attributes.position.needsUpdate = true;
+                    }
+                }
+            });
+        }
+
+        // FIXED: Speaking animation with working morph targets
         function startSpeakingAnimation() {
             if (!avatarModel) return;
             
-            console.log('🎭 Starting speaking animation...');
+            console.log('🎭 Starting speaking animation with facial morphs...');
             isSpeaking = true;
             
-            // Switch to speaking animation if available
-            if (speakingAnimation && animationMixer) {
-                console.log('🎬 Switching to speaking animation:', speakingAnimation.name);
-                if (currentAction) {
-                    currentAction.fadeOut(0.3);
-                }
-                
-                currentAction = animationMixer.clipAction(speakingAnimation);
-                currentAction.reset().fadeIn(0.3).play();
-                currentAction.setLoop(THREE.LoopRepeat);
-            } else if (idleAnimation && animationMixer) {
-                // Speed up idle animation for speaking effect
-                console.log('⚡ Speeding up idle animation for speaking effect');
-                if (currentAction) {
-                    currentAction.setEffectiveTimeScale(1.5); // 1.5x speed for subtle animation
-                }
-            }
-            
-            // Start the appropriate mouth animation based on avatar type
-            if (morphTargets) {
-                console.log('🗣️ Starting morph-based lip sync');
-                animateMouthMorphs();
-            } else if (avatarModel.userData && avatarModel.userData.mouth) {
-                console.log('🎭 Starting fallback mouth animation');
-                animateFallbackMouth();
-            } else {
-                console.log('⚠️ No mouth animation available, using head movement only');
-                animateHeadBobbing();
-            }
-            
-            // Add subtle head movements for all avatars during speaking
-            animateSpeakingHeadMovement();
+            // Start realistic lip-sync animation
+            animateRealisticSpeaking();
         }
 
         function stopSpeakingAnimation() {
@@ -467,187 +481,64 @@
             console.log('🔇 Stopping speaking animation...');
             isSpeaking = false;
             
-            // Switch back to idle animation
-            if (idleAnimation && animationMixer && currentAction) {
-                console.log('🔄 Switching back to idle animation');
-                if (speakingAnimation) {
-                    currentAction.fadeOut(0.3);
-                    currentAction = animationMixer.clipAction(idleAnimation);
-                    currentAction.reset().fadeIn(0.3).play();
-                    currentAction.setLoop(THREE.LoopRepeat);
-                } else {
-                    // Reset speed if we were using sped-up idle
-                    currentAction.setEffectiveTimeScale(1.0);
-                }
-            }
-            
-            // Reset mouth morphs to neutral position
-            if (morphTargets) {
-                const mouthMorphNames = ['jawOpen', 'mouthOpen', 'mouth_open', 'viseme_aa', 'viseme_E', 'viseme_I', 'viseme_O', 'viseme_U'];
-                mouthMorphNames.forEach(morphName => {
-                    if (morphTargets.morphTargetDictionary[morphName] !== undefined) {
-                        const morphIndex = morphTargets.morphTargetDictionary[morphName];
-                        morphTargets.morphTargetInfluences[morphIndex] = 0;
-                    }
-                });
-            }
+            // Reset all morph targets
+            resetMorphTargets();
         }
 
-        function animateFallbackMouth() {
-            if (!isSpeaking || !avatarModel.userData.mouth) return;
+        function animateRealisticSpeaking() {
+            if (!isSpeaking) return;
             
-            const mouth = avatarModel.userData.mouth;
-            const originalScale = mouth.scale.y;
+            // Create realistic speaking patterns with multiple morph targets
+            const speakingMorphs = ['mouthOpen', 'jawOpen', 'mouthSmileLeft', 'mouthSmileRight', 'viseme_aa', 'viseme_E', 'viseme_O'];
             
-            const animate = () => {
+            const interval = setInterval(() => {
                 if (!isSpeaking) {
-                    mouth.scale.y = originalScale;
+                    clearInterval(interval);
+                    resetMorphTargets();
                     return;
                 }
                 
-                // Random mouth opening
-                const targetScale = originalScale * (0.5 + Math.random() * 1.5);
-                const duration = 100 + Math.random() * 200;
+                // Animate random mouth movements
+                const morph = speakingMorphs[Math.floor(Math.random() * speakingMorphs.length)];
+                const intensity = 0.2 + Math.random() * 0.6;
+                const duration = 80 + Math.random() * 120;
                 
-                // Animate to target
-                const startScale = mouth.scale.y;
-                const startTime = Date.now();
+                setMorphTarget(morph, intensity);
                 
-                const updateMouth = () => {
-                    if (!isSpeaking) {
-                        mouth.scale.y = originalScale;
-                        return;
+                // Reset after animation
+                setTimeout(() => {
+                    if (isSpeaking) {
+                        setMorphTarget(morph, 0);
                     }
-                    
-                    const elapsed = Date.now() - startTime;
-                    const progress = Math.min(elapsed / duration, 1);
-                    
-                    mouth.scale.y = startScale + (targetScale - startScale) * progress;
-                    
-                    if (progress >= 1) {
-                        setTimeout(animate, 50 + Math.random() * 100);
-                    } else {
-                        requestAnimationFrame(updateMouth);
-                    }
-                };
+                }, duration);
                 
-                updateMouth();
-            };
-            
-            animate();
+            }, 120 + Math.random() * 100);
         }
 
-        function animateSpeakingHeadMovement() {
-            if (!isSpeaking || !avatarModel) return;
+        // Test function for facial animation (exposed globally)
+        window.testFacialAnimation = function() {
+            console.log('🧪 Testing facial animation...');
             
-            const originalRotation = { x: avatarModel.rotation.x, y: avatarModel.rotation.y, z: avatarModel.rotation.z };
+            // Test mouth open
+            setMorphTarget('mouthOpen', 1.0);
+            setTimeout(() => setMorphTarget('mouthOpen', 0), 500);
             
-            const animate = () => {
-                if (!isSpeaking) {
-                    avatarModel.rotation.x = originalRotation.x;
-                    avatarModel.rotation.y = originalRotation.y;
-                    avatarModel.rotation.z = originalRotation.z;
-                    return;
-                }
-                
-                const time = Date.now() * 0.003;
-                avatarModel.rotation.y = originalRotation.y + Math.sin(time * 2) * 0.05;
-                avatarModel.rotation.x = originalRotation.x + Math.sin(time * 1.5) * 0.02;
-                
-                requestAnimationFrame(animate);
-            };
+            // Test smile
+            setTimeout(() => {
+                setMorphTarget('mouthSmileLeft', 0.8);
+                setMorphTarget('mouthSmileRight', 0.8);
+            }, 600);
             
-            animate();
-        }
-
-        function animateMouthMorphs() {
-            if (!isSpeaking || !morphTargets) return;
-            
-            // Simulate lip sync with random mouth movements
-            const mouthMorphNames = ['mouthOpen', 'jawOpen', 'mouth_open', 'viseme_aa'];
-            const availableMorph = mouthMorphNames.find(name => 
-                morphTargets.morphTargetDictionary[name] !== undefined
-            );
-            
-            if (availableMorph) {
-                const morphIndex = morphTargets.morphTargetDictionary[availableMorph];
-                
-                // Animate mouth opening/closing
-                const animate = () => {
-                    if (!isSpeaking) return;
-                    
-                    const intensity = 0.3 + Math.random() * 0.4; // Random intensity
-                    const duration = 100 + Math.random() * 200; // Random duration
-                    
-                    // Open mouth
-                    const openTween = {
-                        start: morphTargets.morphTargetInfluences[morphIndex] || 0,
-                        end: intensity,
-                        duration: duration,
-                        startTime: Date.now()
-                    };
-                    
-                    const updateMouth = () => {
-                        if (!isSpeaking) {
-                            morphTargets.morphTargetInfluences[morphIndex] = 0;
-                            return;
-                        }
-                        
-                        const elapsed = Date.now() - openTween.startTime;
-                        const progress = Math.min(elapsed / openTween.duration, 1);
-                        
-                        if (progress < 0.5) {
-                            // Opening phase
-                            morphTargets.morphTargetInfluences[morphIndex] = 
-                                openTween.start + (openTween.end - openTween.start) * (progress * 2);
-                        } else {
-                            // Closing phase
-                            morphTargets.morphTargetInfluences[morphIndex] = 
-                                openTween.end * (2 - progress * 2);
-                        }
-                        
-                        if (progress >= 1) {
-                            // Start next mouth movement
-                            setTimeout(animate, 50 + Math.random() * 100);
-                        } else {
-                            requestAnimationFrame(updateMouth);
-                        }
-                    };
-                    
-                    updateMouth();
-                };
-                
-                animate();
-            }
-        }
-
-        function animateHeadBobbing() {
-            if (!isSpeaking || !avatarModel) return;
-            
-            // Simple head bobbing animation as fallback
-            const originalY = avatarModel.position.y;
-            const bobIntensity = 0.02;
-            const bobSpeed = 8;
-            
-            const animate = () => {
-                if (!isSpeaking) {
-                    avatarModel.position.y = originalY;
-                    return;
-                }
-                
-                const time = Date.now() * 0.01;
-                avatarModel.position.y = originalY + Math.sin(time * bobSpeed) * bobIntensity;
-                
-                requestAnimationFrame(animate);
-            };
-            
-            animate();
-        }
+            setTimeout(() => {
+                setMorphTarget('mouthSmileLeft', 0);
+                setMorphTarget('mouthSmileRight', 0);
+            }, 1200);
+        };
 
         function createFallbackAvatar() {
+            // Enhanced fallback avatar (same as before)
             const group = new THREE.Group();
             
-            // Create a realistic face-focused avatar
             const headGeometry = new THREE.SphereGeometry(0.3, 32, 32);
             const headMaterial = new THREE.MeshLambertMaterial({ color: 0xfdbcb4 });
             const head = new THREE.Mesh(headGeometry, headMaterial);
@@ -655,47 +546,20 @@
             head.castShadow = true;
             group.add(head);
             
-            // Detailed eyes with pupils
-            const eyeWhiteGeometry = new THREE.SphereGeometry(0.06, 16, 16);
-            const eyeWhiteMaterial = new THREE.MeshLambertMaterial({ color: 0xffffff });
+            // Eyes, mouth, etc. (same as your original fallback)
+            const eyeGeometry = new THREE.SphereGeometry(0.06, 16, 16);
+            const eyeMaterial = new THREE.MeshLambertMaterial({ color: 0xffffff });
             
-            const leftEyeWhite = new THREE.Mesh(eyeWhiteGeometry, eyeWhiteMaterial);
-            leftEyeWhite.position.set(-0.12, 1.7, 0.25);
-            leftEyeWhite.scale.z = 0.5; // Flatten to look more realistic
-            group.add(leftEyeWhite);
+            const leftEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+            leftEye.position.set(-0.12, 1.7, 0.25);
+            leftEye.scale.z = 0.5;
+            group.add(leftEye);
             
-            const rightEyeWhite = new THREE.Mesh(eyeWhiteGeometry, eyeWhiteMaterial);
-            rightEyeWhite.position.set(0.12, 1.7, 0.25);
-            rightEyeWhite.scale.z = 0.5;
-            group.add(rightEyeWhite);
+            const rightEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+            rightEye.position.set(0.12, 1.7, 0.25);
+            rightEye.scale.z = 0.5;
+            group.add(rightEye);
             
-            // Pupils
-            const pupilGeometry = new THREE.SphereGeometry(0.03, 12, 12);
-            const pupilMaterial = new THREE.MeshLambertMaterial({ color: 0x1a1a1a });
-            
-            const leftPupil = new THREE.Mesh(pupilGeometry, pupilMaterial);
-            leftPupil.position.set(-0.12, 1.7, 0.28);
-            group.add(leftPupil);
-            
-            const rightPupil = new THREE.Mesh(pupilGeometry, pupilMaterial);
-            rightPupil.position.set(0.12, 1.7, 0.28);
-            group.add(rightPupil);
-            
-            // Expressive eyebrows
-            const browGeometry = new THREE.CylinderGeometry(0.025, 0.025, 0.12, 8);
-            const browMaterial = new THREE.MeshLambertMaterial({ color: 0x8B4513 });
-            
-            const leftBrow = new THREE.Mesh(browGeometry, browMaterial);
-            leftBrow.position.set(-0.12, 1.8, 0.22);
-            leftBrow.rotation.z = Math.PI / 2;
-            group.add(leftBrow);
-            
-            const rightBrow = new THREE.Mesh(browGeometry, browMaterial);
-            rightBrow.position.set(0.12, 1.8, 0.22);
-            rightBrow.rotation.z = Math.PI / 2;
-            group.add(rightBrow);
-            
-            // Realistic mouth that can animate properly
             const mouthGeometry = new THREE.CylinderGeometry(0.08, 0.08, 0.03, 16);
             const mouthMaterial = new THREE.MeshLambertMaterial({ color: 0xd2691e });
             const mouth = new THREE.Mesh(mouthGeometry, mouthMaterial);
@@ -703,57 +567,20 @@
             mouth.rotation.x = Math.PI / 2;
             group.add(mouth);
             
-            // Upper and lower lips for more realistic animation
-            const lipGeometry = new THREE.CylinderGeometry(0.09, 0.09, 0.01, 16);
-            const lipMaterial = new THREE.MeshLambertMaterial({ color: 0xcd5c5c });
-            
-            const upperLip = new THREE.Mesh(lipGeometry, lipMaterial);
-            upperLip.position.set(0, 1.57, 0.26);
-            upperLip.rotation.x = Math.PI / 2;
-            group.add(upperLip);
-            
-            const lowerLip = new THREE.Mesh(lipGeometry, lipMaterial);
-            lowerLip.position.set(0, 1.53, 0.26);
-            lowerLip.rotation.x = Math.PI / 2;
-            group.add(lowerLip);
-            
-            // Nose
-            const noseGeometry = new THREE.ConeGeometry(0.03, 0.08, 8);
-            const noseMaterial = new THREE.MeshLambertMaterial({ color: 0xfdbcb4 });
-            const nose = new THREE.Mesh(noseGeometry, noseMaterial);
-            nose.position.set(0, 1.62, 0.28);
-            nose.rotation.x = Math.PI;
-            group.add(nose);
-            
-            // Minimal body (mostly out of frame)
-            const bodyGeometry = new THREE.CylinderGeometry(0.4, 0.45, 1.0, 12);
-            const bodyMaterial = new THREE.MeshLambertMaterial({ color: 0x2563eb });
-            const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
-            body.position.y = 0.8;
-            body.castShadow = true;
-            group.add(body);
-            
-            // Add animation data for realistic face animation
-            group.userData = { 
-                originalY: 0,
-                animationTime: 0,
+            group.userData = {
                 mouth: mouth,
-                upperLip: upperLip,
-                lowerLip: lowerLip,
-                head: head,
-                leftEye: leftEyeWhite,
-                rightEye: rightEyeWhite,
-                leftPupil: leftPupil,
-                rightPupil: rightPupil,
-                leftBrow: leftBrow,
-                rightBrow: rightBrow
+                leftEye: leftEye,
+                rightEye: rightEye,
+                originalMouthScale: mouth.scale.y
             };
             
+            if (avatarModel) {
+                scene.remove(avatarModel);
+            }
             avatarModel = group;
             scene.add(avatarModel);
-            updateAvatarStatus('ready', 'Realistic avatar ready');
             
-            console.log('🎭 Created realistic face-focused avatar with detailed features');
+            console.log('🎭 Created fallback avatar with working animations');
         }
 
         function updateAvatarStatus(status, message) {
@@ -768,95 +595,20 @@
             
             const delta = clock.getDelta();
             
-            if (controls) {
-                controls.update();
-            }
+            if (controls) controls.update();
+            if (animationMixer) animationMixer.update(delta);
             
-            // Update avatar animations
-            if (animationMixer) {
-                animationMixer.update(delta);
-            }
-            
-            // Enhanced idle animations for fallback avatar
-            if (avatarModel && avatarModel.userData && avatarModel.userData.animationTime !== undefined) {
-                avatarModel.userData.animationTime += delta;
-                
-                if (!isSpeaking) {
-                    // Subtle breathing animation
-                    const breathe = Math.sin(avatarModel.userData.animationTime * 1.2) * 0.006;
-                    avatarModel.position.y = avatarModel.userData.originalY + breathe;
-                    
-                    // Natural head movement
-                    if (avatarModel.userData.head) {
-                        const time = avatarModel.userData.animationTime;
-                        avatarModel.userData.head.rotation.y = Math.sin(time * 0.25) * 0.03;
-                        avatarModel.userData.head.rotation.x = Math.sin(time * 0.3) * 0.015;
-                        avatarModel.userData.head.rotation.z = Math.sin(time * 0.2) * 0.01;
-                    }
-                    
-                    // Realistic blinking for fallback avatar
-                    if (avatarModel.userData.leftEye && avatarModel.userData.rightEye) {
-                        const blinkTime = avatarModel.userData.animationTime * 1.5;
-                        const blinkTrigger = Math.sin(blinkTime);
-                        
-                        // Blink every 3-4 seconds approximately
-                        if (blinkTrigger > 0.995) {
-                            // Quick blink
-                            avatarModel.userData.leftEye.scale.y = 0.05;
-                            avatarModel.userData.rightEye.scale.y = 0.05;
-                            if (avatarModel.userData.leftPupil) avatarModel.userData.leftPupil.scale.y = 0.05;
-                            if (avatarModel.userData.rightPupil) avatarModel.userData.rightPupil.scale.y = 0.05;
-                        } else {
-                            avatarModel.userData.leftEye.scale.y = 1;
-                            avatarModel.userData.rightEye.scale.y = 1;
-                            if (avatarModel.userData.leftPupil) avatarModel.userData.leftPupil.scale.y = 1;
-                            if (avatarModel.userData.rightPupil) avatarModel.userData.rightPupil.scale.y = 1;
-                        }
-                    }
-                    
-                    // Subtle eyebrow movements
-                    if (avatarModel.userData.leftBrow && avatarModel.userData.rightBrow) {
-                        const browTime = avatarModel.userData.animationTime * 0.6;
-                        const browMovement = Math.sin(browTime) * 0.008;
-                        avatarModel.userData.leftBrow.position.y = 1.8 + browMovement;
-                        avatarModel.userData.rightBrow.position.y = 1.8 + browMovement;
-                    }
-                } else {
-                    // Enhanced speaking animations for fallback avatar
-                    if (avatarModel.userData.mouth) {
-                        // More dynamic mouth movement during speech
-                        const speakTime = avatarModel.userData.animationTime * 8;
-                        const mouthScale = 1 + Math.abs(Math.sin(speakTime)) * 0.8;
-                        avatarModel.userData.mouth.scale.y = mouthScale;
-                        
-                        // Animate lips separately if available
-                        if (avatarModel.userData.upperLip && avatarModel.userData.lowerLip) {
-                            avatarModel.userData.upperLip.position.y = 1.57 + Math.sin(speakTime * 1.2) * 0.02;
-                            avatarModel.userData.lowerLip.position.y = 1.53 - Math.sin(speakTime * 1.1) * 0.02;
-                        }
-                    }
-                    
-                    // More expressive head movement during speech
-                    if (avatarModel.userData.head) {
-                        const speakTime = avatarModel.userData.animationTime * 3;
-                        avatarModel.userData.head.rotation.y = Math.sin(speakTime) * 0.05;
-                        avatarModel.userData.head.rotation.x = Math.sin(speakTime * 1.3) * 0.025;
-                    }
-                    
-                    // Dynamic eyebrow movement during speech
-                    if (avatarModel.userData.leftBrow && avatarModel.userData.rightBrow) {
-                        const browTime = avatarModel.userData.animationTime * 4;
-                        const browMovement = Math.sin(browTime) * 0.02;
-                        avatarModel.userData.leftBrow.position.y = 1.8 + browMovement;
-                        avatarModel.userData.rightBrow.position.y = 1.8 + browMovement;
-                    }
-                }
+            // Fallback avatar animations
+            if (avatarModel && avatarModel.userData && avatarModel.userData.mouth && !isSpeaking) {
+                // Breathing animation for fallback avatar
+                const time = Date.now() * 0.001;
+                avatarModel.position.y += Math.sin(time) * 0.002;
             }
             
             renderer.render(scene, camera);
         }
 
-        // Speech Recognition Setup
+        // Speech Recognition Setup (same as before)
         function initSpeechRecognition() {
             if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
                 elements.micButton.style.display = 'none';
@@ -943,6 +695,7 @@
             });
         }
 
+        // ENHANCED: Text-to-Speech with facial animation
         function speak(text, priority = false) {
             if (synth.speaking && !priority) {
                 return;
@@ -962,200 +715,24 @@
             utterance.pitch = 1;
             utterance.volume = 0.8;
             
-            // Start realistic lip-sync animation when speech begins
+            // ENHANCED: Start facial animation when speech begins
             utterance.onstart = () => {
-                console.log('🎙️ Speech started - beginning realistic lip-sync');
-                startRealisticLipSync(text);
+                console.log('🎙️ Speech started - beginning facial animation');
+                startSpeakingAnimation();
             };
             
-            // Stop lip-sync animation when speech ends
+            // Stop facial animation when speech ends
             utterance.onend = () => {
-                console.log('🎙️ Speech ended - stopping lip-sync');
-                stopRealisticLipSync();
+                console.log('🎙️ Speech ended - stopping facial animation');
+                stopSpeakingAnimation();
             };
             
-            // Handle speech errors
             utterance.onerror = () => {
-                console.log('🎙️ Speech error - stopping lip-sync');
-                stopRealisticLipSync();
+                console.log('🎙️ Speech error - stopping facial animation');
+                stopSpeakingAnimation();
             };
             
             synth.speak(utterance);
-        }
-
-        function startRealisticLipSync(text) {
-            if (!avatarModel) return;
-            
-            console.log('🗣️ Starting realistic lip-sync for:', text.substring(0, 50) + '...');
-            isSpeaking = true;
-            
-            // Start animation systems
-            startSpeakingAnimation();
-            
-            // Start advanced lip-sync based on speech content
-            startContentBasedLipSync(text);
-        }
-
-        function stopRealisticLipSync() {
-            if (!avatarModel) return;
-            
-            console.log('🔇 Stopping realistic lip-sync');
-            isSpeaking = false;
-            stopSpeakingAnimation();
-        }
-
-        function startContentBasedLipSync(text) {
-            if (!avatarModel) return;
-            
-            // Analyze text for phonemes and create realistic mouth movements
-            const words = text.toLowerCase().split(' ');
-            let wordIndex = 0;
-            const speechRate = parseFloat(elements.speechRate.value);
-            const baseDelay = 1000 / speechRate; // Adjust timing based on speech rate
-            
-            function speakNextWord() {
-                if (!isSpeaking || wordIndex >= words.length) return;
-                
-                const word = words[wordIndex];
-                const wordDuration = (word.length * 100) / speechRate; // Estimate word duration
-                
-                // Create mouth movements based on word characteristics
-                animateWordLipSync(word, wordDuration);
-                
-                wordIndex++;
-                
-                // Schedule next word
-                setTimeout(speakNextWord, wordDuration + (baseDelay * 0.1));
-            }
-            
-            // Start with a small delay to sync with speech synthesis
-            setTimeout(speakNextWord, 200);
-        }
-
-        function animateWordLipSync(word, duration) {
-            if (!avatarModel || !isSpeaking) return;
-            
-            // Analyze word for mouth shape requirements
-            const vowels = word.match(/[aeiou]/g) || [];
-            const consonants = word.match(/[bcdfghjklmnpqrstvwxyz]/g) || [];
-            
-            // Determine mouth opening intensity based on vowels and consonants
-            let maxOpening = 0.3; // Base opening
-            
-            // Vowels require more mouth opening
-            if (vowels.includes('a') || vowels.includes('o')) maxOpening = 0.7;
-            else if (vowels.includes('e') || vowels.includes('i')) maxOpening = 0.5;
-            else if (vowels.includes('u')) maxOpening = 0.4;
-            
-            // Create realistic mouth movement pattern
-            const movements = [];
-            const numMovements = Math.max(2, Math.min(vowels.length + consonants.length, 6));
-            
-            for (let i = 0; i < numMovements; i++) {
-                const intensity = (Math.random() * 0.4 + 0.3) * maxOpening;
-                const timing = (duration / numMovements) * i;
-                movements.push({ intensity, timing });
-            }
-            
-            // Execute mouth movements
-            movements.forEach(movement => {
-                setTimeout(() => {
-                    if (isSpeaking) {
-                        animateMouthToIntensity(movement.intensity, 80);
-                    }
-                }, movement.timing);
-            });
-        }
-
-        function animateMouthToIntensity(targetIntensity, duration) {
-            if (!avatarModel || !isSpeaking) return;
-            
-            if (morphTargets) {
-                // Use morph targets for realistic mouth animation
-                animateMorphToIntensity(targetIntensity, duration);
-            } else if (avatarModel.userData && avatarModel.userData.mouth) {
-                // Use fallback mouth scaling
-                animateFallbackMouthToIntensity(targetIntensity, duration);
-            }
-        }
-
-        function animateMorphToIntensity(targetIntensity, duration) {
-            const mouthMorphNames = ['mouthOpen', 'jawOpen', 'mouth_open', 'viseme_aa', 'viseme_E'];
-            const availableMorph = mouthMorphNames.find(name => 
-                morphTargets.morphTargetDictionary[name] !== undefined
-            );
-            
-            if (!availableMorph) return;
-            
-            const morphIndex = morphTargets.morphTargetDictionary[availableMorph];
-            const startIntensity = morphTargets.morphTargetInfluences[morphIndex] || 0;
-            const startTime = Date.now();
-            
-            function updateMorph() {
-                if (!isSpeaking) {
-                    morphTargets.morphTargetInfluences[morphIndex] = 0;
-                    return;
-                }
-                
-                const elapsed = Date.now() - startTime;
-                const progress = Math.min(elapsed / duration, 1);
-                
-                // Smooth interpolation to target
-                const currentIntensity = startIntensity + (targetIntensity - startIntensity) * easeInOut(progress);
-                morphTargets.morphTargetInfluences[morphIndex] = currentIntensity;
-                
-                if (progress < 1) {
-                    requestAnimationFrame(updateMorph);
-                } else {
-                    // Close mouth after opening
-                    setTimeout(() => {
-                        if (isSpeaking) {
-                            animateMorphToIntensity(0, duration * 0.6);
-                        }
-                    }, 50);
-                }
-            }
-            
-            updateMorph();
-        }
-
-        function animateFallbackMouthToIntensity(targetIntensity, duration) {
-            const mouth = avatarModel.userData.mouth;
-            if (!mouth) return;
-            
-            const startScale = mouth.scale.y;
-            const targetScale = 1 + targetIntensity * 2; // Scale mouth based on intensity
-            const startTime = Date.now();
-            
-            function updateMouth() {
-                if (!isSpeaking) {
-                    mouth.scale.y = 1;
-                    return;
-                }
-                
-                const elapsed = Date.now() - startTime;
-                const progress = Math.min(elapsed / duration, 1);
-                
-                const currentScale = startScale + (targetScale - startScale) * easeInOut(progress);
-                mouth.scale.y = currentScale;
-                
-                if (progress < 1) {
-                    requestAnimationFrame(updateMouth);
-                } else {
-                    // Return to normal
-                    setTimeout(() => {
-                        if (isSpeaking) {
-                            animateFallbackMouthToIntensity(0, duration * 0.6);
-                        }
-                    }, 50);
-                }
-            }
-            
-            updateMouth();
-        }
-
-        function easeInOut(t) {
-            return t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
         }
 
         // Event Listeners

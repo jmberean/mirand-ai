@@ -3,20 +3,40 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Mock Interview</title>
+    <title>AI Mock Interview - Debug Version</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <style>
         #interviewArea {
             margin-top: 20px;
+            position: relative;
         }
         .hidden {
             display: none;
         }
+        #avatar-canvas {
+            width: 400px;
+            height: 500px;
+            border: 2px solid #ccc;
+            background-color: #f0f0f0;
+            position: relative;
+            margin: 20px auto;
+            display: block;
+        }
+        #debug-info {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 10px;
+            margin: 10px 0;
+            font-family: monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+        }
     </style>
 </head>
 <body class="bg-gray-100 p-8">
-    <div class="max-w-3xl mx-auto bg-white shadow-md rounded-lg p-6">
-        <h1 class="text-2xl font-bold text-center mb-4">AI Mock Interview</h1>
+    <div class="max-w-4xl mx-auto bg-white shadow-md rounded-lg p-6">
+        <h1 class="text-2xl font-bold text-center mb-4">AI Mock Interview - Debug Version</h1>
 
         <div id="setupArea" class="mb-4">
             <label for="jobTitleInput" class="block text-gray-700 text-sm font-bold mb-2">Target Job Title:</label>
@@ -25,11 +45,20 @@
             <label for="companyInput" class="block text-gray-700 text-sm font-bold mb-2 mt-2">Target Company:</label>
             <input type="text" id="companyInput" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" placeholder="e.g., Google">
 
-            <button id="startButton" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline mt-4">Start Interview</button>
+            <div style="margin-top: 16px;">
+                <button id="startButton" style="background-color: #3b82f6; color: white; font-weight: bold; padding: 8px 16px; border-radius: 4px; border: none; margin-right: 8px; cursor: pointer;">Start Interview</button>
+                <button id="testAvatarButton" style="background-color: #f97316; color: white; font-weight: bold; padding: 8px 16px; border-radius: 4px; border: none; cursor: pointer;">Test Avatar Only</button>
+            </div>
+        </div>
+
+        <!-- Avatar Canvas - Always Visible for Testing -->
+        <div class="text-center mb-4">
+            <h3 class="text-lg font-semibold mb-2">3D Avatar</h3>
+            <canvas id="avatar-canvas"></canvas>
+            <div id="debug-info">Debug info will appear here...</div>
         </div>
 
         <div id="interviewArea" class="hidden mt-4">
-            <img id="aiAvatar" src="images/robot.png" alt="AI Avatar" style="width: 150px; margin-bottom: 10px;">
             <div id="questionDisplay" class="mb-4 font-semibold"></div>
             <textarea id="answerInput" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline mb-2" rows="3" placeholder="Your answer"></textarea>
             <button id="answerButton" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline mr-2">Submit Answer</button>
@@ -41,6 +70,495 @@
         <div id="errorDisplay" class="hidden mt-4 text-red-500"></div>
     </div>
 
-    <script src="script.js"></script>
+    <script type="importmap">
+        {
+          "imports": {
+            "three": "https://unpkg.com/three@0.161.0/build/three.module.js",
+            "three/addons/": "https://unpkg.com/three@0.161.0/examples/jsm/"
+          }
+        }
+    </script>
+    <script type="module">
+        import * as THREE from 'three';
+        import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+        // DOM elements
+        const jobTitleInput = document.getElementById('jobTitleInput');
+        const companyInput = document.getElementById('companyInput');
+        const startButton = document.getElementById('startButton');
+        const testAvatarButton = document.getElementById('testAvatarButton');
+        const interviewArea = document.getElementById('interviewArea');
+        const questionDisplay = document.getElementById('questionDisplay');
+        const answerInput = document.getElementById('answerInput');
+        const answerButton = document.getElementById('answerButton');
+        const aiFeedback = document.getElementById('aiFeedback');
+        const nextButton = document.getElementById('nextButton');
+        const loadingIndicator = document.getElementById('loadingIndicator');
+        const errorDisplay = document.getElementById('errorDisplay');
+        const avatarCanvas = document.getElementById('avatar-canvas');
+        const debugInfo = document.getElementById('debug-info');
+
+        let interviewQuestions = [];
+        let currentQuestionIndex = 0;
+        let allFeedback = [];
+
+        // Debug logging function
+        function debugLog(message) {
+            console.log(message);
+            debugInfo.textContent += new Date().toLocaleTimeString() + ': ' + message + '\n';
+        }
+
+        // Initialize Three.js Scene
+        let scene, camera, renderer, controls, avatarModel;
+
+        function initThreeJS() {
+            debugLog('Initializing Three.js...');
+            
+            // Scene setup
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0xf0f0f0);
+            
+            // Camera setup
+            const aspect = avatarCanvas.clientWidth / avatarCanvas.clientHeight;
+            camera = new THREE.PerspectiveCamera(75, aspect, 0.1, 1000);
+            camera.position.set(0, 1.6, 3);
+            
+            // Renderer setup
+            renderer = new THREE.WebGLRenderer({ 
+                canvas: avatarCanvas, 
+                antialias: true 
+            });
+            renderer.setSize(avatarCanvas.clientWidth, avatarCanvas.clientHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            
+            // Controls
+            controls = new OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.target.set(0, 1, 0);
+            
+            // Lighting
+            const ambientLight = new THREE.AmbientLight(0x404040, 0.6);
+            scene.add(ambientLight);
+            
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight.position.set(5, 10, 5);
+            directionalLight.castShadow = true;
+            directionalLight.shadow.mapSize.width = 2048;
+            directionalLight.shadow.mapSize.height = 2048;
+            scene.add(directionalLight);
+            
+            // Add a test cube to verify Three.js is working
+            const testGeometry = new THREE.BoxGeometry(0.5, 0.5, 0.5);
+            const testMaterial = new THREE.MeshLambertMaterial({ color: 0x00ff00 });
+            const testCube = new THREE.Mesh(testGeometry, testMaterial);
+            testCube.position.set(-2, 1, 0);
+            scene.add(testCube);
+            
+            debugLog('Three.js initialized successfully');
+            debugLog(`Canvas size: ${avatarCanvas.clientWidth}x${avatarCanvas.clientHeight}`);
+            debugLog(`Camera aspect: ${aspect}`);
+            
+            animate();
+        }
+
+        function loadAvatar() {
+            debugLog('Starting avatar load...');
+            
+            // Test multiple avatar URLs in case one is problematic
+            const avatarUrls = [
+                'https://models.readyplayer.me/683efe096ef5e269d307e27e.glb', // Your specific avatar
+                'https://models.readyplayer.me/683e288ef869a1762214c735.glb', // Original avatar
+                'https://models.readyplayer.me/65a6da99c832ca2d3ba9c877.glb' // Fallback model
+            ];
+            
+            let currentUrlIndex = 0;
+            
+            function tryLoadAvatar(urlIndex) {
+                if (urlIndex >= avatarUrls.length) {
+                    debugLog('All avatar URLs failed, loading fallback model');
+                    loadFallbackModel();
+                    return;
+                }
+                
+                const avatarUrl = avatarUrls[urlIndex];
+                debugLog(`Trying avatar URL ${urlIndex + 1}: ${avatarUrl}`);
+                
+                const gltfLoader = new GLTFLoader();
+                
+                // Set a timeout for loading
+                const timeoutId = setTimeout(() => {
+                    debugLog(`Loading timeout for URL ${urlIndex + 1}, trying next...`);
+                    tryLoadAvatar(urlIndex + 1);
+                }, 10000); // 10 second timeout
+                
+                gltfLoader.load(
+                    avatarUrl,
+                    (gltf) => {
+                        clearTimeout(timeoutId);
+                        debugLog('GLTF loaded successfully!');
+                        avatarModel = gltf.scene;
+                        
+                        // Log model info
+                        debugLog(`Model children count: ${avatarModel.children.length}`);
+                        debugLog(`Model scale: ${avatarModel.scale.x}, ${avatarModel.scale.y}, ${avatarModel.scale.z}`);
+                        
+                        // Calculate bounding box
+                        const box = new THREE.Box3().setFromObject(avatarModel);
+                        const size = box.getSize(new THREE.Vector3());
+                        const center = box.getCenter(new THREE.Vector3());
+                        
+                        debugLog(`Model size: ${size.x.toFixed(2)}, ${size.y.toFixed(2)}, ${size.z.toFixed(2)}`);
+                        debugLog(`Model center: ${center.x.toFixed(2)}, ${center.y.toFixed(2)}, ${center.z.toFixed(2)}`);
+                        
+                        // Position and scale the model
+                        avatarModel.position.set(0, 0, 0);
+                        
+                        // Scale based on model size - typical Ready Player Me models are quite large
+                        const scaleFactor = 1.8 / size.y; // Scale to about 1.8 units tall
+                        avatarModel.scale.setScalar(scaleFactor);
+                        
+                        // Center the model
+                        avatarModel.position.y = -center.y * scaleFactor;
+                        
+                        debugLog(`Applied scale: ${scaleFactor.toFixed(3)}`);
+                        debugLog(`Final position: ${avatarModel.position.x}, ${avatarModel.position.y}, ${avatarModel.position.z}`);
+                        
+                        // Enable shadows
+                        avatarModel.traverse((child) => {
+                            if (child.isMesh) {
+                                child.castShadow = true;
+                                child.receiveShadow = true;
+                            }
+                        });
+                        
+                        scene.add(avatarModel);
+                        debugLog('Avatar added to scene!');
+                    },
+                    (progress) => {
+                        if (progress.total > 0) {
+                            const percent = (progress.loaded / progress.total * 100);
+                            debugLog(`Loading progress: ${percent.toFixed(1)}%`);
+                        } else {
+                            debugLog(`Loading progress: ${progress.loaded} bytes loaded`);
+                        }
+                    },
+                    (error) => {
+                        clearTimeout(timeoutId);
+                        debugLog(`Error loading GLTF from URL ${urlIndex + 1}: ${error.message}`);
+                        console.error('GLTF loading error:', error);
+                        
+                        // Try next URL
+                        setTimeout(() => tryLoadAvatar(urlIndex + 1), 1000);
+                    }
+                );
+            }
+            
+            tryLoadAvatar(0);
+        }
+        
+        function loadFallbackModel() {
+            debugLog('Creating fallback 3D model...');
+            
+            // Create a simple humanoid figure as fallback
+            const group = new THREE.Group();
+            
+            // Head
+            const headGeometry = new THREE.SphereGeometry(0.15, 16, 16);
+            const headMaterial = new THREE.MeshLambertMaterial({ color: 0xfdbcb4 }); // Skin color
+            const head = new THREE.Mesh(headGeometry, headMaterial);
+            head.position.y = 1.65;
+            group.add(head);
+            
+            // Body
+            const bodyGeometry = new THREE.CylinderGeometry(0.2, 0.25, 0.6, 8);
+            const bodyMaterial = new THREE.MeshLambertMaterial({ color: 0x4169e1 }); // Blue shirt
+            const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
+            body.position.y = 1.2;
+            group.add(body);
+            
+            // Arms
+            const armGeometry = new THREE.CylinderGeometry(0.08, 0.08, 0.5, 8);
+            const armMaterial = new THREE.MeshLambertMaterial({ color: 0xfdbcb4 });
+            
+            const leftArm = new THREE.Mesh(armGeometry, armMaterial);
+            leftArm.position.set(-0.35, 1.2, 0);
+            leftArm.rotation.z = 0.3;
+            group.add(leftArm);
+            
+            const rightArm = new THREE.Mesh(armGeometry, armMaterial);
+            rightArm.position.set(0.35, 1.2, 0);
+            rightArm.rotation.z = -0.3;
+            group.add(rightArm);
+            
+            // Legs
+            const legGeometry = new THREE.CylinderGeometry(0.1, 0.1, 0.7, 8);
+            const legMaterial = new THREE.MeshLambertMaterial({ color: 0x2f4f4f }); // Dark pants
+            
+            const leftLeg = new THREE.Mesh(legGeometry, legMaterial);
+            leftLeg.position.set(-0.15, 0.55, 0);
+            group.add(leftLeg);
+            
+            const rightLeg = new THREE.Mesh(legGeometry, legMaterial);
+            rightLeg.position.set(0.15, 0.55, 0);
+            group.add(rightLeg);
+            
+            // Enable shadows
+            group.traverse((child) => {
+                if (child.isMesh) {
+                    child.castShadow = true;
+                    child.receiveShadow = true;
+                }
+            });
+            
+            avatarModel = group;
+            scene.add(avatarModel);
+            debugLog('Fallback avatar created and added to scene!');
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            if (controls) {
+                controls.update();
+            }
+            
+            // Rotate the test cube
+            const testCube = scene.getObjectByName('testCube') || scene.children.find(child => child.geometry && child.geometry.type === 'BoxGeometry');
+            if (testCube) {
+                testCube.rotation.x += 0.01;
+                testCube.rotation.y += 0.01;
+            }
+            
+            renderer.render(scene, camera);
+        }
+
+        function onWindowResize() {
+            const width = avatarCanvas.clientWidth;
+            const height = avatarCanvas.clientHeight;
+            
+            camera.aspect = width / height;
+            camera.updateProjectionMatrix();
+            renderer.setSize(width, height);
+            
+            debugLog(`Resized to: ${width}x${height}`);
+        }
+
+        // Web Speech API for voice
+        const synth = window.speechSynthesis;
+
+        function speak(text) {
+            if (synth.speaking) {
+                console.error('speechSynthesis.speaking');
+                return;
+            }
+            const utterance = new SpeechSynthesisUtterance(text);
+            synth.speak(utterance);
+        }
+
+        // Event Listeners
+        testAvatarButton.addEventListener('click', () => {
+            debugLog('Test Avatar button clicked');
+            loadAvatar();
+        });
+
+        startButton.addEventListener('click', async () => {
+            debugLog('Start button clicked');
+            const jobTitle = jobTitleInput.value.trim();
+            const company = companyInput.value.trim();
+
+            if (!jobTitle || !company) {
+                alert('Please enter job title and company.');
+                return;
+            }
+
+            // Load avatar if not already loaded
+            if (!avatarModel) {
+                loadAvatar();
+            }
+
+            interviewQuestions = [];
+            currentQuestionIndex = 0;
+            allFeedback = [];
+            questionDisplay.textContent = '';
+            answerInput.value = '';
+            answerInput.classList.remove('hidden');
+            answerButton.classList.remove('hidden');
+            aiFeedback.textContent = '';
+
+            const finalEvalButton = document.getElementById('finalEvalButton');
+            if (finalEvalButton) interviewArea.removeChild(finalEvalButton);
+            const finalEvalDisplay = interviewArea.querySelector('.bg-yellow-200');
+            if (finalEvalDisplay) interviewArea.removeChild(finalEvalDisplay);
+
+            loadingIndicator.classList.remove('hidden');
+            errorDisplay.classList.add('hidden');
+            interviewArea.classList.remove('hidden');
+
+            // Mock questions for testing (replace with your API call)
+            try {
+                // Simulating API call with mock data
+                debugLog('Simulating API call for questions...');
+                await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate delay
+                
+                interviewQuestions = [
+                    `Tell me about yourself and why you're interested in the ${jobTitle} position at ${company}.`,
+                    `What technical skills do you have that make you a good fit for this role?`,
+                    `Describe a challenging project you've worked on and how you overcame obstacles.`,
+                    `Why do you want to work at ${company} specifically?`,
+                    `Where do you see yourself in 5 years?`
+                ];
+                
+                loadingIndicator.classList.add('hidden');
+                displayQuestion();
+                debugLog('Questions loaded successfully');
+                
+                /*
+                // Uncomment this for real API integration
+                const response = await fetch('http://127.0.0.1:5000/get_questions', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ job_title: jobTitle, company: company }),
+                });
+                if (!response.ok) throw new Error((await response.json()).error || 'Failed to fetch questions.');
+                const data = await response.json();
+                interviewQuestions = data.questions;
+                loadingIndicator.classList.add('hidden');
+                displayQuestion();
+                */
+            } catch (error) {
+                console.error('Error fetching questions:', error);
+                errorDisplay.textContent = `Error: ${error.message}`;
+                errorDisplay.classList.remove('hidden');
+                loadingIndicator.classList.add('hidden');
+            }
+        });
+
+        answerButton.addEventListener('click', async () => {
+            if (!interviewQuestions.length) return;
+            const currentQuestion = interviewQuestions[currentQuestionIndex];
+            const answer = answerInput.value.trim();
+            if (!answer) { 
+                alert('Please enter your answer.'); 
+                return; 
+            }
+
+            answerButton.disabled = true;
+            nextButton.classList.add('hidden');
+            aiFeedback.textContent = 'Evaluating...';
+            speak('Evaluating...');
+
+            try {
+                // Mock evaluation (replace with your API call)
+                await new Promise(resolve => setTimeout(resolve, 1500)); // Simulate delay
+                const mockFeedback = `Good answer! You demonstrated understanding of the key concepts. Consider providing more specific examples next time.`;
+                
+                aiFeedback.textContent = mockFeedback;
+                speak(mockFeedback);
+                allFeedback.push({ question: currentQuestion, answer: answer, feedback: mockFeedback });
+                nextButton.classList.remove('hidden');
+                answerButton.disabled = false;
+                
+                /*
+                // Uncomment for real API integration
+                const response = await fetch('http://127.0.0.1:5000/evaluate_answer', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ question: currentQuestion, answer: answer }),
+                });
+                if (!response.ok) throw new Error((await response.json()).error || 'Failed to evaluate answer.');
+                const data = await response.json();
+                aiFeedback.textContent = data.evaluation;
+                speak(data.evaluation);
+                allFeedback.push({ question: currentQuestion, answer: answer, feedback: data.evaluation });
+                nextButton.classList.remove('hidden');
+                answerButton.disabled = false;
+                */
+            } catch (error) {
+                console.error('Error evaluating answer:', error);
+                aiFeedback.textContent = `Error: ${error.message}`;
+                speak(`Error: ${error.message}`);
+                answerButton.disabled = false;
+            }
+        });
+
+        nextButton.addEventListener('click', () => {
+            currentQuestionIndex++;
+            answerInput.value = '';
+            aiFeedback.textContent = '';
+            nextButton.classList.add('hidden');
+            if (currentQuestionIndex < interviewQuestions.length) {
+                displayQuestion();
+            } else {
+                questionDisplay.textContent = 'Interview Finished!';
+                speak('Interview Finished!');
+                answerInput.classList.add('hidden');
+                answerButton.classList.add('hidden');
+
+                const finalEvalButton = document.createElement('button');
+                finalEvalButton.textContent = 'Get Final Evaluation';
+                finalEvalButton.className = 'bg-purple-500 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline mt-4';
+                finalEvalButton.id = 'finalEvalButton';
+                finalEvalButton.addEventListener('click', getFinalEvaluation);
+                interviewArea.appendChild(finalEvalButton);
+            }
+        });
+
+        async function getFinalEvaluation() {
+            loadingIndicator.classList.remove('hidden');
+            try {
+                // Mock final evaluation
+                await new Promise(resolve => setTimeout(resolve, 2000));
+                const mockEvaluation = `Overall Performance: Good\n\nStrengths:\n- Clear communication\n- Relevant experience\n- Good technical knowledge\n\nAreas for Improvement:\n- Provide more specific examples\n- Show more enthusiasm for the company\n- Practice behavioral questions\n\nRecommendation: You're on the right track! Keep practicing and focus on storytelling with specific examples.`;
+                
+                const finalEvalDiv = document.createElement('div');
+                finalEvalDiv.className = 'mt-4 p-3 bg-yellow-200 rounded text-gray-700';
+                finalEvalDiv.style.whiteSpace = 'pre-line';
+                finalEvalDiv.textContent = `Final Evaluation:\n${mockEvaluation}`;
+                speak(`Final Evaluation: ${mockEvaluation}`);
+                interviewArea.appendChild(finalEvalDiv);
+                
+                /*
+                // Uncomment for real API integration
+                const response = await fetch('http://127.0.0.1:5000/get_final_evaluation', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                });
+                if (!response.ok) throw new Error((await response.json()).error || 'Failed to get final evaluation.');
+                const data = await response.json();
+                const finalEvalDiv = document.createElement('div');
+                finalEvalDiv.className = 'mt-4 p-3 bg-yellow-200 rounded text-gray-700';
+                finalEvalDiv.textContent = `Final Evaluation:\n${data.final_evaluation}`;
+                speak(`Final Evaluation:\n${data.final_evaluation}`);
+                interviewArea.appendChild(finalEvalDiv);
+                */
+            } catch (error) {
+                console.error('Error getting final evaluation:', error);
+                errorDisplay.textContent = `Error getting final evaluation: ${error.message}`;
+                speak(`Error getting final evaluation: ${error.message}`);
+                errorDisplay.classList.remove('hidden');
+            } finally {
+                loadingIndicator.classList.add('hidden');
+            }
+        }
+
+        function displayQuestion() {
+            if (currentQuestionIndex < interviewQuestions.length) {
+                questionDisplay.textContent = `Question ${currentQuestionIndex + 1}: ${interviewQuestions[currentQuestionIndex]}`;
+                speak(`Question ${currentQuestionIndex + 1}: ${interviewQuestions[currentQuestionIndex]}`);
+            }
+        }
+
+        // Initialize everything
+        window.addEventListener('resize', onWindowResize, false);
+        
+        // Start Three.js immediately
+        initThreeJS();
+        
+        debugLog('Application initialized');
+    </script>
 </body>
 </html>

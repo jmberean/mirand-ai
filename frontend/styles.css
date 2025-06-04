@@ -1,7 +1,7 @@
 /* AI Mock Interview - Styles */
 
-/* Avatar Canvas */
-#avatar-canvas {
+/* Avatar Canvas (Removed as it's no longer used) */
+/* #avatar-canvas {
     width: 400px;
     height: 500px;
     border: 2px solid #e5e7eb;
@@ -9,7 +9,7 @@
     background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
     display: block;
     margin: 0 auto;
-}
+} */
 
 /* Speech Button Animations */
 .speech-button {
@@ -38,56 +38,25 @@
     margin-top: 8px;
 }
 
-/* Status Indicators */
+/* Status Indicators (Adjusted for D-ID status) */
+/* Removed specific status-loading, status-ready styles as D-ID status text is handled directly */
 .status-indicator {
     display: inline-block;
     width: 10px;
     height: 10px;
     border-radius: 50%;
     margin-right: 8px;
+    background-color: gray; /* Default */
 }
 
-.status-ready { 
-    background-color: #10b981; 
+/* General Button Styling */
+button {
+    cursor: pointer;
+    border: none;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-.status-loading { 
-    background-color: #f59e0b; 
-    animation: pulse 1s infinite; 
-}
-
-.status-error { 
-    background-color: #ef4444; 
-}
-
-/* Responsive Design */
-@media (max-width: 768px) {
-    #avatar-canvas {
-        width: 300px;
-        height: 375px;
-    }
-    
-    .max-w-6xl {
-        margin: 0 1rem;
-    }
-    
-    .grid.md\\:grid-cols-2 {
-        grid-template-columns: 1fr;
-    }
-}
-
-/* Focus States */
-input:focus, 
-textarea:focus, 
-select:focus, 
-button:focus {
-    outline: 2px solid #3b82f6;
-    outline-offset: 2px;
-}
-
-/* Button Hover Effects */
 button:hover {
-    transform: translateY(-1px);
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
@@ -150,28 +119,5 @@ textarea {
     to {
         opacity: 1;
         transform: translateY(0);
-    }
-}
-
-/* Avatar Status Animation */
-#avatarStatus {
-    transition: all 0.3s ease;
-}
-
-/* Button Group Spacing */
-.flex.space-x-3 > * + * {
-    margin-left: 0.75rem;
-}
-
-/* Voice Controls Responsive */
-@media (max-width: 640px) {
-    .voice-controls {
-        flex-direction: column;
-        align-items: stretch;
-        gap: 8px;
-    }
-    
-    .voice-controls button {
-        width: 100%;
     }
 }

@@ -2,6 +2,8 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 from utils import get_candidate_questions_with_ai, evaluate_answer_with_ai
 import os
+from dotenv import load_dotenv
+load_dotenv()
 
 app = Flask(__name__)
 CORS(app) # Enable Cross-Origin Resource Sharing for development

@@ -44,7 +44,7 @@ Provide brief, constructive feedback (1-2 sentences).
 Then, decide if a relevant follow-up question is needed. If so, start it with "Follow-up: ".
 """
         response = client.chat.completions.create(
-            model="gpt-4",
+            model="gpt-4.1-nano",
             messages=[{"role": "user", "content": prompt}],
             temperature=0.7,
             max_tokens=150,

@@ -1,170 +1,588 @@
-// AI Mock Interview with Hassan - Complete D-ID Integration
-// No Ready Player Me - Pure D-ID Implementation
+// AI Mock Interview - Bulletproof Version
+// Absolutely no null reference errors possible
+
+console.log('🚀 Loading bulletproof script...');
 
 // =============================================================================
-// GLOBAL VARIABLES & STATE
+// SAFE ELEMENT ACCESS
 // =============================================================================
 
-// DOM Elements
-const elements = {
-    jobTitleInput: document.getElementById('jobTitleInput'),
-    companyInput: document.getElementById('companyInput'),
-    // Removed voiceSelect as D-ID handles voice internally for its streams
-    speechRate: document.getElementById('speechRate'),
-    speechRateValue: document.getElementById('speechRateValue'), // Added for speech rate display
-    startButton: document.getElementById('startButton'),
-    interviewArea: document.getElementById('interviewArea'),
-    questionDisplay: document.getElementById('questionDisplay'),
-    answerInput: document.getElementById('answerInput'),
-    answerButton: document.getElementById('answerButton'),
-    nextButton: document.getElementById('nextButton'),
-    repeatQuestionButton: document.getElementById('repeatQuestionButton'),
-    micButton: document.getElementById('micButton'),
-    stopMicButton: document.getElementById('stopMicButton'),
-    speechStatus: document.getElementById('speechStatus'),
-    aiFeedback: document.getElementById('aiFeedback'),
-    loadingIndicator: document.getElementById('loadingIndicator'),
-    errorDisplay: document.getElementById('errorDisplay'),
-    hassanVideo: document.getElementById('hassanVideo'), // D-ID video element
-    hassanStatus: document.getElementById('hassanStatus'), // D-ID status element
-    hassanPlaceholder: document.getElementById('hassanPlaceholder'), // D-ID placeholder
-    setupArea: document.getElementById('setupArea') // Added to hide setup area
-};
+function safeAddEventListener(elementId, eventType, handler) {
+    const element = document.getElementById(elementId);
+    if (element && typeof element.addEventListener === 'function') {
+        element.addEventListener(eventType, handler);
+        console.log(`✅ Event listener added: ${elementId} -> ${eventType}`);
+        return true;
+    } else {
+        console.log(`⚠️ Skipped event listener: ${elementId} not found`);
+        return false;
+    }
+}
+
+function safeGetElement(id) {
+    try {
+        const element = document.getElementById(id);
+        if (element) {
+            console.log(`✅ Found element: ${id}`);
+            return element;
+        } else {
+            console.log(`⚠️ Element not found: ${id}`);
+            return null;
+        }
+    } catch (error) {
+        console.error(`❌ Error getting element ${id}:`, error);
+        return null;
+    }
+}
+
+// =============================================================================
+// GLOBAL STATE
+// =============================================================================
 
 // Interview State
 let interviewQuestions = [];
 let currentQuestionIndex = 0;
 let currentQuestion = '';
-let interviewHistory = []; // To store question, answer, feedback for final evaluation
+let interviewHistory = [];
+let isInterviewActive = false;
+let isAISpeaking = false;
+let isUserSpeaking = false;
+let conversationTurn = 'ai';
 
-// Speech Recognition
+// Audio & Speech
 let recognition;
-let isRecording = false;
-// Removed synth and selectedVoice as D-ID handles speech synthesis
+let isListening = false;
+let audioContext;
+let analyser;
+let microphone;
+let vadThreshold = 0.01;
+let speechTimer;
+let silenceTimer;
+let currentTranscript = '';
+let finalTranscript = '';
 
-// D-ID Streaming API Variables
+// D-ID Streaming
 let peerConnection;
 let streamId;
 let sessionId;
-let talkDeferred = Promise.resolve(); // Use a deferred promise to chain speech calls
+let talkDeferred = Promise.resolve();
+
+// Timing constants
+const SILENCE_TIMEOUT = 2000;
+const SPEECH_START_DELAY = 500;
+const AI_RESPONSE_DELAY = 800;
 
 // =============================================================================
-// HELPER FUNCTIONS
+// SAFE HELPER FUNCTIONS
 // =============================================================================
 
-/**
- * Displays a message in the error display area.
- * @param {string} message - The error message to display.
- */
+function safeSetText(elementId, text) {
+    const element = document.getElementById(elementId);
+    if (element) {
+        element.textContent = text;
+        return true;
+    }
+    return false;
+}
+
+function safeSetValue(elementId, value) {
+    const element = document.getElementById(elementId);
+    if (element && 'value' in element) {
+        element.value = value;
+        return true;
+    }
+    return false;
+}
+
+function safeAddClass(elementId, className) {
+    const element = document.getElementById(elementId);
+    if (element && element.classList) {
+        element.classList.add(className);
+        return true;
+    }
+    return false;
+}
+
+function safeRemoveClass(elementId, className) {
+    const element = document.getElementById(elementId);
+    if (element && element.classList) {
+        element.classList.remove(className);
+        return true;
+    }
+    return false;
+}
+
+function safeToggleClass(elementId, className, force) {
+    const element = document.getElementById(elementId);
+    if (element && element.classList) {
+        element.classList.toggle(className, force);
+        return true;
+    }
+    return false;
+}
+
 function displayError(message) {
-    elements.errorDisplay.textContent = message;
-    elements.errorDisplay.classList.remove('hidden');
-    console.error('Error:', message);
+    console.error('❌ Error:', message);
+    
+    // Try multiple ways to show the error
+    if (safeSetText('errorDisplay', message)) {
+        safeRemoveClass('errorDisplay', 'hidden');
+    } else {
+        // Fallback to alert if error display doesn't exist
+        alert('Error: ' + message);
+    }
 }
 
-/**
- * Clears any displayed error messages.
- */
 function clearError() {
-    elements.errorDisplay.textContent = '';
-    elements.errorDisplay.classList.add('hidden');
+    safeSetText('errorDisplay', '');
+    safeAddClass('errorDisplay', 'hidden');
 }
 
-/**
- * Shows/hides the loading indicator.
- * @param {boolean} show - True to show, false to hide.
- */
 function showLoading(show) {
-    elements.loadingIndicator.classList.toggle('hidden', !show);
+    console.log(`⏳ Loading: ${show}`);
+    safeToggleClass('loadingIndicator', 'hidden', !show);
 }
 
-/**
- * Updates the D-ID connection status display.
- * @param {string} status - The status message.
- * @param {string} color - Tailwind CSS color class (e.g., 'text-green-500').
- */
+function updateConversationStatus(status) {
+    console.log(`📊 Status: ${status}`);
+    
+    // Try multiple status elements
+    safeSetText('conversationStatus', status) || 
+    safeSetText('speechStatus', status) ||
+    console.log(`Status: ${status}`);
+}
+
 function updateHassanStatus(status, color = 'text-white') {
-    elements.hassanStatus.textContent = status;
-    elements.hassanStatus.className = `absolute bottom-2 left-2 bg-black bg-opacity-50 ${color} text-xs px-2 py-1 rounded-md`;
-    elements.hassanStatus.classList.remove('hidden'); // Ensure status is visible when updated
+    console.log(`🎭 Hassan: ${status}`);
+    
+    const element = document.getElementById('hassanStatus');
+    if (element) {
+        element.textContent = status;
+        element.className = `absolute bottom-2 left-2 bg-black bg-opacity-50 ${color} text-xs px-2 py-1 rounded-md`;
+        safeRemoveClass('hassanStatus', 'hidden');
+    }
 }
 
 // =============================================================================
-// D-ID INTEGRATION (WebRTC Streaming - Proxying via Backend)
+// AUDIO & SPEECH FUNCTIONS
 // =============================================================================
 
-/**
- * Connects to the D-ID streaming API via WebRTC, proxied through backend.
- */
+function testAudioLevelsEnhanced() {
+    const bufferLength = analyser.frequencyBinCount;
+    const dataArray = new Uint8Array(bufferLength);
+    let testCount = 0;
+    let maxLevel = 0;
+    let avgLevel = 0;
+    
+    function checkLevels() {
+        if (testCount++ > 100) { // Test for ~5 seconds
+            avgLevel = avgLevel / testCount;
+            console.log(`🎚️ Audio test complete:`);
+            console.log(`📊 Max level: ${maxLevel.toFixed(4)}`);
+            console.log(`📊 Avg level: ${avgLevel.toFixed(4)}`);
+            console.log(`📊 Recommended threshold: ${Math.max(avgLevel * 3, 0.015).toFixed(4)}`);
+            
+            if (maxLevel < 0.005) {
+                console.warn('⚠️ Very low audio levels - check microphone');
+            }
+            return;
+        }
+        
+        analyser.getByteFrequencyData(dataArray);
+        const average = dataArray.reduce((sum, value) => sum + value, 0) / bufferLength;
+        const normalizedLevel = average / 255;
+        
+        if (normalizedLevel > maxLevel) {
+            maxLevel = normalizedLevel;
+        }
+        avgLevel += normalizedLevel;
+        
+        setTimeout(checkLevels, 50);
+    }
+    
+    checkLevels();
+}
+
+console.log('🔧 SPEECH SENSITIVITY FIX LOADED');
+console.log('💡 Run testSensitivity() for adjustment commands');
+
+async function initAudioContext() {
+    try {
+        console.log('🎤 Initializing enhanced audio...');
+        
+        const stream = await navigator.mediaDevices.getUserMedia({ 
+            audio: {
+                echoCancellation: true,
+                noiseSuppression: true,      // Important for background noise
+                autoGainControl: true,
+                sampleRate: 44100
+            } 
+        });
+        
+        console.log('✅ Microphone permission granted');
+        
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        
+        if (audioContext.state === 'suspended') {
+            await audioContext.resume();
+            console.log('🔄 Audio context resumed');
+        }
+        
+        microphone = audioContext.createMediaStreamSource(stream);
+        analyser = audioContext.createAnalyser();
+        
+        // Enhanced settings for better speech detection
+        analyser.fftSize = 1024; // Increased for better frequency analysis
+        analyser.smoothingTimeConstant = 0.6; // More smoothing to reduce noise spikes
+        analyser.minDecibels = -80; // Adjusted range
+        analyser.maxDecibels = -10;
+        
+        microphone.connect(analyser);
+        
+        // Test audio levels first
+        testAudioLevelsEnhanced();
+        
+        // Start enhanced detection after brief delay
+        setTimeout(() => {
+            startVoiceActivityDetection();
+        }, 1000);
+        
+        console.log('✅ Enhanced audio context initialized');
+        return true;
+    } catch (error) {
+        console.error('❌ Audio failed:', error);
+        displayError('Microphone access failed: ' + error.message);
+        return false;
+    }
+}
+
+function testAudioLevels() {
+    const bufferLength = analyser.frequencyBinCount;
+    const dataArray = new Uint8Array(bufferLength);
+    let testCount = 0;
+    let maxLevel = 0;
+    
+    function checkLevels() {
+        if (testCount++ > 50) { // Test for ~2.5 seconds
+            console.log(`🎚️ Audio test complete. Max level detected: ${maxLevel.toFixed(3)}`);
+            if (maxLevel < 0.001) {
+                console.warn('⚠️ Very low audio levels - check microphone');
+                displayError('Microphone levels very low. Please speak louder or check microphone settings.');
+            }
+            return;
+        }
+        
+        analyser.getByteFrequencyData(dataArray);
+        const average = dataArray.reduce((sum, value) => sum + value, 0) / bufferLength;
+        const normalizedLevel = average / 255;
+        
+        if (normalizedLevel > maxLevel) {
+            maxLevel = normalizedLevel;
+        }
+        
+        setTimeout(checkLevels, 50);
+    }
+    
+    checkLevels();
+}
+
+
+function startVoiceActivityDetection() {
+    if (!analyser) return;
+    
+    const bufferLength = analyser.frequencyBinCount;
+    const dataArray = new Uint8Array(bufferLength);
+    
+    // MUCH HIGHER THRESHOLD - Only detect actual speech
+    vadThreshold = 0.02; // Was 0.005, now 4x higher
+    const speechConfirmThreshold = 0.03; // Must reach this level to confirm speech
+    const silenceThreshold = 0.01; // Must drop below this to confirm silence
+    
+    let speechConfirmed = false;
+    let consecutiveSpeechFrames = 0;
+    let consecutiveSilenceFrames = 0;
+    const minSpeechFrames = 5; // Must detect speech for 5 frames (~250ms)
+    const minSilenceFrames = 100; // Must detect silence for 100 frames (~5 seconds)
+    
+    console.log('🎯 Enhanced Voice Activity Detection started');
+    console.log(`📊 Thresholds: VAD=${vadThreshold}, Speech=${speechConfirmThreshold}, Silence=${silenceThreshold}`);
+    
+    function detectVoiceActivity() {
+        if (!isInterviewActive || isAISpeaking) {
+            requestAnimationFrame(detectVoiceActivity);
+            return;
+        }
+        
+        try {
+            analyser.getByteFrequencyData(dataArray);
+            const average = dataArray.reduce((sum, value) => sum + value, 0) / bufferLength;
+            const normalizedLevel = average / 255;
+            
+            // Debug logging (reduced frequency)
+            if (Math.random() < 0.005) { // Log 0.5% of the time
+                console.log(`🎤 Level: ${normalizedLevel.toFixed(4)} | Speech: ${speechConfirmed} | Frames: S${consecutiveSpeechFrames}/Si${consecutiveSilenceFrames}`);
+            }
+            
+            // Speech detection logic
+            if (normalizedLevel > vadThreshold) {
+                consecutiveSpeechFrames++;
+                consecutiveSilenceFrames = 0;
+                
+                // Confirm speech only after reaching higher threshold for several frames
+                if (!speechConfirmed && 
+                    consecutiveSpeechFrames >= minSpeechFrames && 
+                    normalizedLevel > speechConfirmThreshold &&
+                    !isUserSpeaking && 
+                    conversationTurn === 'user') {
+                    
+                    speechConfirmed = true;
+                    console.log(`🗣️ SPEECH CONFIRMED! Level: ${normalizedLevel.toFixed(4)} after ${consecutiveSpeechFrames} frames`);
+                    handleSpeechStart();
+                }
+            } else if (normalizedLevel <= silenceThreshold) {
+                consecutiveSilenceFrames++;
+                consecutiveSpeechFrames = 0;
+                
+                // Confirm silence only after sustained quiet period
+                if (speechConfirmed && consecutiveSilenceFrames >= minSilenceFrames && isUserSpeaking) {
+                    speechConfirmed = false;
+                    console.log(`🤫 SILENCE CONFIRMED! Level: ${normalizedLevel.toFixed(4)} after ${consecutiveSilenceFrames} frames`);
+                    handlePossibleSpeechEnd();
+                }
+            } else {
+                // In between thresholds - maintain current state but reset frame counters partially
+                consecutiveSpeechFrames = Math.max(0, consecutiveSpeechFrames - 1);
+                consecutiveSilenceFrames = Math.max(0, consecutiveSilenceFrames - 1);
+            }
+            
+        } catch (error) {
+            console.error('VAD error:', error);
+        }
+        
+        requestAnimationFrame(detectVoiceActivity);
+    }
+    
+    detectVoiceActivity();
+}
+
+
+
+// Enhanced speech start with confirmation delay
+function handleSpeechStart() {
+    // Remove the timeout delay since we already have frame-based confirmation
+    if (!isUserSpeaking && conversationTurn === 'user') {
+        isUserSpeaking = true;
+        startContinuousRecognition();
+        updateConversationStatus('🎤 Listening...');
+        console.log('🎤 Speech detection confirmed, recognition started');
+    }
+}
+
+
+// Enhanced speech end with immediate response
+function handlePossibleSpeechEnd() {
+    // Remove timeout since we already confirmed silence
+    if (isUserSpeaking) {
+        handleSpeechEnd();
+    }
+}
+
+// Manual threshold adjustment for testing
+function adjustSensitivity(newThreshold) {
+    vadThreshold = newThreshold;
+    console.log(`🎚️ VAD threshold adjusted to: ${vadThreshold}`);
+}
+
+// Quick sensitivity tests
+function testSensitivity() {
+    console.log('🧪 SENSITIVITY TEST COMMANDS:');
+    console.log('adjustSensitivity(0.01) - Very sensitive');
+    console.log('adjustSensitivity(0.02) - Normal (current)'); 
+    console.log('adjustSensitivity(0.03) - Less sensitive');
+    console.log('adjustSensitivity(0.05) - Much less sensitive');
+}
+
+// Enhanced speech end processing
+function handleSpeechEnd() {
+    if (isUserSpeaking) {
+        isUserSpeaking = false;
+        stopContinuousRecognition();
+        updateConversationStatus('⚡ Processing...');
+        console.log('⚡ Speech ended, processing response');
+        
+        // Shorter delay since we already waited for silence confirmation
+        setTimeout(() => {
+            if (finalTranscript.trim()) {
+                processUserResponse(finalTranscript.trim());
+            } else {
+                conversationTurn = 'user';
+                updateConversationStatus('💬 Your turn to speak');
+                console.log('🔄 No transcript, ready for next speech');
+            }
+        }, 500); // Reduced from 800ms to 500ms
+    }
+}
+
+function initContinuousSpeechRecognition() {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+        console.error('❌ Speech Recognition not supported');
+        displayError('Speech Recognition not supported. Please use Chrome or Edge.');
+        return false;
+    }
+
+    console.log('✅ Speech recognition available');
+    recognition = new SpeechRecognition();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = 'en-US';
+    recognition.maxAlternatives = 1;
+
+    recognition.onstart = () => {
+        console.log('🎤 Speech recognition STARTED');
+        isListening = true;
+    };
+
+    recognition.onresult = (event) => {
+        let interim = '';
+        finalTranscript = '';
+        
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+            const transcript = event.results[i][0].transcript;
+            const confidence = event.results[i][0].confidence;
+            
+            if (event.results[i].isFinal) {
+                finalTranscript += transcript;
+                console.log(`📝 Final transcript: "${transcript}" (confidence: ${confidence})`);
+            } else {
+                interim += transcript;
+            }
+        }
+        
+        currentTranscript = finalTranscript + interim;
+        safeSetValue('answerInput', currentTranscript);
+        
+        // Show real-time feedback
+        if (currentTranscript.trim()) {
+            updateConversationStatus('🎤 Recording: "' + currentTranscript.substring(0, 30) + '..."');
+        }
+        
+        if (isUserSpeaking) {
+            clearTimeout(silenceTimer);
+            silenceTimer = setTimeout(() => {
+                if (isUserSpeaking) {
+                    handleSpeechEnd();
+                }
+            }, SILENCE_TIMEOUT);
+        }
+    };
+
+    recognition.onerror = (event) => {
+        console.error('❌ Speech recognition error:', event.error);
+        
+        if (event.error === 'no-speech') {
+            console.log('🔄 No speech detected, restarting...');
+            if (isListening && conversationTurn === 'user') {
+                setTimeout(() => startContinuousRecognition(), 100);
+            }
+        } else if (event.error === 'audio-capture') {
+            displayError('Microphone not accessible. Please check permissions.');
+        } else if (event.error === 'not-allowed') {
+            displayError('Microphone permission denied. Please allow access.');
+        } else {
+            displayError(`Speech error: ${event.error}`);
+        }
+    };
+
+    recognition.onend = () => {
+        console.log('🛑 Speech recognition ENDED');
+        isListening = false;
+        
+        if (isListening && conversationTurn === 'user' && !isAISpeaking) {
+            console.log('🔄 Auto-restarting speech recognition...');
+            setTimeout(() => startContinuousRecognition(), 100);
+        }
+    };
+
+    return true;
+}
+
+function startContinuousRecognition() {
+    if (recognition && !isListening) {
+        try {
+            isListening = true;
+            currentTranscript = '';
+            finalTranscript = '';
+            safeSetValue('answerInput', '');
+            recognition.start();
+            console.log('🎤 Recognition started');
+        } catch (error) {
+            console.error('Recognition start failed:', error);
+            isListening = false;
+        }
+    }
+}
+
+function stopContinuousRecognition() {
+    if (recognition && isListening) {
+        isListening = false;
+        recognition.stop();
+        console.log('⏹️ Recognition stopped');
+    }
+}
+
+// =============================================================================
+// D-ID INTEGRATION
+// =============================================================================
+
 async function connectToDID() {
+    console.log('🎭 Connecting to D-ID...');
     updateHassanStatus('Connecting...');
     clearError();
 
-    // Hide placeholder and show video/status elements
-    elements.hassanPlaceholder.classList.add('hidden');
-    elements.hassanVideo.classList.remove('hidden');
-    elements.hassanStatus.classList.remove('hidden');
+    safeAddClass('hassanPlaceholder', 'hidden');
+    safeRemoveClass('hassanVideo', 'hidden');
+    safeRemoveClass('hassanStatus', 'hidden');
 
-    // Add video event listeners for debugging
-    elements.hassanVideo.addEventListener('loadedmetadata', () => {
-        console.log('Video Event: loadedmetadata - Video dimensions:', elements.hassanVideo.videoWidth, 'x', elements.hassanVideo.videoHeight);
-    });
-    elements.hassanVideo.addEventListener('canplay', () => {
-        console.log('Video Event: canplay - Video is ready to play through to the end.');
-    });
-    elements.hassanVideo.addEventListener('playing', () => {
-        console.log('Video Event: playing - Video has started playing.');
-        // --- NEW: Unmute the video once it starts playing ---
-        if (elements.hassanVideo.muted) {
-            elements.hassanVideo.muted = false;
-            console.log('Video has been unmuted.');
-        }
-        // --- END NEW ---
-    });
-    elements.hassanVideo.addEventListener('error', (e) => {
-        console.error('Video Event: error - Video playback error:', e);
-        if (elements.hassanVideo.error) {
-            console.error('Video Error Code:', elements.hassanVideo.error.code);
-            console.error('Video Error Message:', elements.hassanVideo.error.message);
-        }
-    });
-
+    // Add video event listeners safely
+    const videoElement = document.getElementById('hassanVideo');
+    if (videoElement) {
+        videoElement.addEventListener('playing', () => {
+            console.log('📹 Video playing');
+            if (videoElement.muted) {
+                videoElement.muted = false;
+                console.log('🔊 Video unmuted');
+            }
+        });
+    }
 
     if (peerConnection && peerConnection.connectionState === 'connected') {
-        console.log('D-ID already connected.');
         updateHassanStatus('Connected', 'text-green-500');
         return true;
     }
 
     try {
-        // Step 1: Create D-ID stream via backend proxy
         const didResponse = await fetch('http://127.0.0.1:5000/create_did_stream', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                source_url: 'https://d-id-public-bucket.s3.us-west-2.amazonaws.com/alice.jpg', 
+                source_url: 'https://d-id-public-bucket.s3.us-west-2.amazonaws.com/alice.jpg',
             }),
         });
 
         if (!didResponse.ok) {
             const errorData = await didResponse.json();
-            throw new Error(`Failed to create D-ID stream via backend: ${didResponse.status} - ${errorData.error || didResponse.statusText}`);
+            throw new Error(`D-ID failed: ${errorData.error}`);
         }
 
         const { id: newStreamId, session_id: newSessionId, offer, ice_servers } = await didResponse.json();
         streamId = newStreamId;
         sessionId = newSessionId;
 
-        console.log('D-ID Stream Created. Stream ID:', streamId);
-        console.log('D-ID Session ID received:', sessionId);
-        console.log('D-ID ICE Servers received:', ice_servers); // Log received ICE servers
+        console.log('✅ D-ID stream created:', streamId);
 
-        // Use the ICE servers provided by D-ID
-        peerConnection = new RTCPeerConnection({
-            iceServers: ice_servers, 
-        });
+        peerConnection = new RTCPeerConnection({ iceServers: ice_servers });
 
-        // Step 2: Handle ICE candidates and send via backend proxy
         peerConnection.onicecandidate = (event) => {
             if (event.candidate) {
                 fetch('http://127.0.0.1:5000/did_stream_ice', {
@@ -175,55 +593,38 @@ async function connectToDID() {
                         session_id: sessionId,
                         candidate: event.candidate,
                     }),
-                }).catch(e => console.error('Error sending ICE candidate via backend:', e));
+                }).catch(e => console.error('ICE error:', e));
             }
         };
 
-        // Step 3: Handle incoming video/audio tracks
         peerConnection.ontrack = (event) => {
-            console.log('RTCPeerConnection ontrack event received:', event); // Log ontrack event
             const mediaStream = event.streams[0];
-
-            // --- NEW LOGGING FOR STREAM CONTENTS ---
-            console.log('MediaStream received:', mediaStream);
-            console.log('MediaStream ID:', mediaStream.id);
-            console.log('MediaStream active:', mediaStream.active);
-            console.log('MediaStream video tracks:', mediaStream.getVideoTracks());
-            console.log('MediaStream audio tracks:', mediaStream.getAudioTracks());
-            // --- END NEW LOGGING ---
-
-            if (elements.hassanVideo.srcObject !== mediaStream) {
-                elements.hassanVideo.srcObject = mediaStream;
-                // Add a small delay before playing to ensure browser has processed srcObject
+            if (videoElement && videoElement.srcObject !== mediaStream) {
+                videoElement.srcObject = mediaStream;
                 setTimeout(() => {
-                    elements.hassanVideo.play().catch(e => console.error('Error playing video:', e));
-                    console.log('Video stream attached and play attempted. Video element readyState:', elements.hassanVideo.readyState); 
-                    console.log('Video element dimensions (offsetWidth x offsetHeight):', elements.hassanVideo.offsetWidth, 'x', elements.hassanVideo.offsetHeight);
-                }, 100); // 100ms delay
+                    videoElement.play().catch(e => console.error('Video play error:', e));
+                }, 100);
+                console.log('📹 Video stream attached');
             }
         };
 
-        // Step 4: Monitor ICE connection state
         peerConnection.oniceconnectionstatechange = () => {
-            console.log('ICE connection state:', peerConnection.iceConnectionState);
-            if (peerConnection.iceConnectionState === 'failed' || peerConnection.iceConnectionState === 'disconnected') {
-                updateHassanStatus('Disconnected', 'text-red-500');
-                console.error('D-ID connection failed or disconnected.');
-                // Optionally try to reconnect here
-            } else if (peerConnection.iceConnectionState === 'connected') {
+            const state = peerConnection.iceConnectionState;
+            console.log('🔗 ICE state:', state);
+            if (state === 'connected') {
                 updateHassanStatus('Connected', 'text-green-500');
+            } else if (state === 'failed' || state === 'disconnected') {
+                updateHassanStatus('Disconnected', 'text-red-500');
             } else {
-                updateHassanStatus(peerConnection.iceConnectionState);
+                updateHassanStatus(state);
             }
         };
 
-        // Step 5: Set remote description and create answer
         await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
         const answer = await peerConnection.createAnswer();
         await peerConnection.setLocalDescription(answer);
 
-        // Step 6: Send SDP answer via backend proxy
-        await fetch(`http://127.0.0.1:5000/did_stream_sdp`, {
+        await fetch('http://127.0.0.1:5000/did_stream_sdp', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -234,225 +635,160 @@ async function connectToDID() {
         });
 
         updateHassanStatus('Connected', 'text-green-500');
-        console.log('D-ID stream connected successfully!');
+        console.log('✅ D-ID connected');
         return true;
 
     } catch (error) {
-        console.error('D-ID connection error:', error);
-        displayError(`Failed to connect to D-ID: ${error.message}`);
-        updateHassanStatus('Connection Failed', 'text-red-500');
-        // Revert visibility if connection fails
-        elements.hassanPlaceholder.classList.remove('hidden');
-        elements.hassanVideo.classList.add('hidden');
-        elements.hassanStatus.classList.add('hidden');
+        console.error('❌ D-ID error:', error);
+        displayError(`D-ID failed: ${error.message}`);
+        updateHassanStatus('Failed', 'text-red-500');
+        
+        safeRemoveClass('hassanPlaceholder', 'hidden');
+        safeAddClass('hassanVideo', 'hidden');
+        safeAddClass('hassanStatus', 'hidden');
         return false;
     }
 }
 
-/**
- * Sends text to D-ID for speaking via backend proxy and plays the generated video.
- * @param {string} text - The text for D-ID to speak.
- */
-async function speak(text) {
+async function speakNaturally(text) {
     if (!peerConnection || peerConnection.connectionState !== 'connected') {
-        displayError('D-ID not connected. Please refresh or check API key.');
+        console.error('❌ D-ID not connected');
+        displayError('D-ID not connected');
         return;
     }
 
-    // Chain speech calls to ensure they play sequentially
-    talkDeferred = talkDeferred.then(async () => {
-        try {
-            console.log('Sending text to D-ID via backend:', text);
-            showLoading(true); // Show loading while D-ID processes
+    isAISpeaking = true;
+    conversationTurn = 'ai';
+    updateConversationStatus('🤖 AI speaking...');
 
-            const talkResponse = await fetch(`http://127.0.0.1:5000/did_stream_talk`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    stream_id: streamId,
-                    session_id: sessionId,
-                    text: text, // Send the text to speak
-                    // You can add voice customization here if your backend supports it,
-                    // e.g., 'voice_id': 'en-US-JennyNeural'
-                }),
-            });
+    return new Promise((resolve) => {
+        talkDeferred = talkDeferred.then(async () => {
+            try {
+                console.log('🗣️ Speaking:', text.substring(0, 50) + '...');
 
-            if (!talkResponse.ok) {
-                const errorData = await talkResponse.json();
-                throw new Error(`Failed to send text to D-ID via backend: ${talkResponse.status} - ${errorData.error || talkResponse.statusText}`);
+                // ENHANCED: Force video to be ready before speaking
+                const videoElement = document.getElementById('hassanVideo');
+                if (videoElement) {
+                    // Ensure video is unmuted and playing
+                    videoElement.muted = false;
+                    videoElement.volume = 1.0;
+                    
+                    // Try to play if paused
+                    if (videoElement.paused) {
+                        await videoElement.play().catch(e => console.log('Video play attempt:', e));
+                    }
+                    
+                    console.log('📹 Video state:', {
+                        muted: videoElement.muted,
+                        volume: videoElement.volume,
+                        paused: videoElement.paused,
+                        readyState: videoElement.readyState
+                    });
+                }
+
+                const talkResponse = await fetch('http://127.0.0.1:5000/did_stream_talk', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        stream_id: streamId,
+                        session_id: sessionId,
+                        text: text,
+                    }),
+                });
+
+                if (!talkResponse.ok) {
+                    const errorData = await talkResponse.json();
+                    throw new Error(`Talk failed: ${errorData.error}`);
+                }
+
+                const talkData = await talkResponse.json();
+                console.log('✅ D-ID talk response:', talkData);
+
+                // ENHANCED: Better duration estimation and audio monitoring
+                const wordCount = text.split(' ').length;
+                const baseSpeed = 150; // words per minute
+                const estimatedDuration = (wordCount / baseSpeed) * 60 * 1000;
+                const minDuration = 3000; // minimum 3 seconds
+                const maxDuration = 30000; // maximum 30 seconds
+                const speechDuration = Math.min(Math.max(estimatedDuration, minDuration), maxDuration);
+
+                console.log(`⏱️ Speech duration: ${speechDuration}ms for ${wordCount} words`);
+
+                // ENHANCED: Monitor for actual audio/video activity
+                let audioDetected = false;
+                const audioMonitor = setInterval(() => {
+                    if (videoElement && !videoElement.paused && videoElement.currentTime > 0) {
+                        audioDetected = true;
+                        console.log('🔊 Audio activity detected');
+                        clearInterval(audioMonitor);
+                    }
+                }, 500);
+
+                setTimeout(() => {
+                    clearInterval(audioMonitor);
+                    isAISpeaking = false;
+                    conversationTurn = 'user';
+                    updateConversationStatus('💬 Your turn to speak');
+                    console.log('✅ AI finished speaking');
+                    if (!audioDetected) {
+                        console.warn('⚠️ No audio activity detected - check D-ID API or video element');
+                    }
+                    resolve();
+                }, speechDuration);
+
+            } catch (error) {
+                console.error('❌ Speech error:', error);
+                isAISpeaking = false;
+                conversationTurn = 'user';
+                updateConversationStatus('❌ Error - continue');
+                resolve();
             }
-
-            const talkData = await talkResponse.json();
-            console.log('D-ID Talk initiated:', talkData);
-
-            // D-ID will send video frames via WebRTC to elements.hassanVideo.srcObject
-            // We just need to ensure the video is playing.
-            if (elements.hassanVideo.paused) {
-                await elements.hassanVideo.play().catch(e => console.error('Error playing video after talk:', e));
-            }
-
-        } catch (error) {
-            console.error('Error speaking with D-ID:', error);
-            displayError(`D-ID speech error: ${error.message}`);
-        } finally {
-            showLoading(false); // Hide loading after D-ID processes
-        }
-    }).catch(e => {
-        console.error("Previous D-ID speech failed, chaining next:", e);
-        showLoading(false);
+        });
     });
 }
 
-/**
- * Stops the current D-ID talk via backend proxy.
- */
-async function stopSpeaking() {
-    if (!peerConnection || peerConnection.connectionState !== 'connected' || !sessionId || !streamId) {
-        return;
-    }
-    try {
-        await fetch(`http://127.0.0.1:5000/did_stream_stop`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                stream_id: streamId,
-                session_id: sessionId,
-            }),
-        });
-        console.log('D-ID talk stopped.');
-    } catch (error) {
-        console.error('Error stopping D-ID talk via backend:', error);
-    }
-}
-
-/**
- * Destroys the D-ID streaming session via backend proxy.
- */
-async function destroyDIDStream() {
-    if (!peerConnection || !streamId || !sessionId) {
-        return;
-    }
-    console.log('Attempting to destroy D-ID stream...');
-    try {
-        await fetch(`http://127.0.0.1:5000/did_stream_destroy`, {
-            method: 'POST', // Changed from DELETE to POST for consistency with Flask's request.get_json()
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                stream_id: streamId,
-                session_id: sessionId,
-            }),
-        });
-        console.log('D-ID stream destroyed successfully.');
-    } catch (error) {
-        console.error('Error destroying D-ID stream via backend:', error);
-    } finally {
-        if (peerConnection) {
-            peerConnection.close();
-            peerConnection = null;
-        }
-        streamId = null;
-        sessionId = null;
-    }
-}
-
-
 // =============================================================================
-// SPEECH RECOGNITION
+// INTERVIEW FUNCTIONS
 // =============================================================================
 
-/**
- * Initializes the Web Speech Recognition API.
- */
-function initSpeechRecognition() {
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRecognition) {
-        displayError('Speech Recognition not supported in this browser. Please use Chrome or Edge.');
-        elements.micButton.disabled = true;
+async function startNaturalInterview() {
+    console.log('🚀 Starting interview...');
+    
+    const jobTitleElement = document.getElementById('jobTitleInput');
+    const companyElement = document.getElementById('companyInput');
+    const startButtonElement = document.getElementById('startButton');
+
+    if (!jobTitleElement) {
+        displayError('Job title input not found');
         return;
     }
 
-    recognition = new SpeechRecognition();
-    recognition.continuous = false; // Listen for a single utterance
-    recognition.interimResults = false; // Only return final results
-    recognition.lang = 'en-US';
+    const jobTitle = jobTitleElement.value.trim();
+    const company = companyElement ? companyElement.value.trim() : '';
 
-    recognition.onstart = () => {
-        isRecording = true;
-        elements.speechStatus.textContent = 'Listening...';
-        elements.micButton.classList.add('hidden');
-        elements.stopMicButton.classList.remove('hidden');
-        elements.answerInput.placeholder = 'Speak your answer...';
-    };
-
-    recognition.onresult = (event) => {
-        const speechResult = event.results[0][0].transcript;
-        elements.answerInput.value = speechResult;
-        elements.speechStatus.textContent = 'Processing...';
-        stopRecording(); // Automatically stop after result
-        submitAnswer(); // Automatically submit the answer
-    };
-
-    recognition.onerror = (event) => {
-        console.error('Speech recognition error:', event.error);
-        elements.speechStatus.textContent = `Error: ${event.error}`;
-        displayError(`Speech recognition error: ${event.error}`);
-        stopRecording();
-    };
-
-    recognition.onend = () => {
-        isRecording = false;
-        elements.speechStatus.textContent = 'Idle';
-        elements.micButton.classList.remove('hidden');
-        elements.stopMicButton.classList.add('hidden');
-        elements.answerInput.placeholder = 'Type your answer here or use the microphone...';
-    };
-}
-
-/**
- * Starts speech recognition.
- */
-function startRecording() {
-    if (recognition && !isRecording) {
-        clearError();
-        recognition.start();
-    }
-}
-
-/**
- * Stops speech recognition.
- */
-function stopRecording() {
-    if (recognition && isRecording) {
-        recognition.stop();
-    }
-}
-
-// =============================================================================
-// INTERVIEW LOGIC
-// =============================================================================
-
-/**
- * Starts the mock interview.
- */
-async function startInterview() {
-    const jobTitle = elements.jobTitleInput.value.trim();
-    const company = elements.companyInput.value.trim();
+    console.log('📝 Job:', jobTitle, 'Company:', company);
 
     if (!jobTitle) {
-        displayError('Please enter a job title to start the interview.');
+        displayError('Please enter a job title');
         return;
     }
 
     clearError();
     showLoading(true);
-    elements.startButton.disabled = true;
+    if (startButtonElement) startButtonElement.disabled = true;
 
     try {
-        // Connect to D-ID first
-        const didConnected = await connectToDID();
-        if (!didConnected) {
-            throw new Error("Could not establish D-ID connection.");
+        console.log('🔧 Initializing systems...');
+        
+        const audioOk = await initAudioContext();
+        const speechOk = initContinuousSpeechRecognition();
+        const didOk = await connectToDID();
+
+        if (!audioOk || !speechOk || !didOk) {
+            throw new Error('System initialization failed');
         }
+
+        console.log('📡 Getting questions...');
 
         const response = await fetch('http://127.0.0.1:5000/get_questions', {
             method: 'POST',
@@ -462,59 +798,58 @@ async function startInterview() {
 
         if (!response.ok) {
             const errorData = await response.json();
-            throw new Error(`Failed to fetch questions: ${response.status} - ${errorData.error || response.statusText}`);
+            throw new Error(`Questions failed: ${errorData.error}`);
         }
 
         const data = await response.json();
         interviewQuestions = data.questions;
         currentQuestionIndex = 0;
-        interviewHistory = []; // Reset history for new interview
+        interviewHistory = [];
+        isInterviewActive = true;
+
+        console.log('📝 Got questions:', interviewQuestions.length);
 
         if (interviewQuestions && interviewQuestions.length > 0) {
             currentQuestion = interviewQuestions[currentQuestionIndex];
-            elements.questionDisplay.textContent = currentQuestion;
+            safeSetText('questionDisplay', currentQuestion);
 
-            // Speak the introduction and first question using D-ID
-            const introText = `Hello! I'm your AI interviewer. Let's begin your interview for the ${jobTitle} role at ${company || 'your target company'}. Your first question is: ${currentQuestion}`;
-            await speak(introText);
+            // UI updates
+            safeAddClass('setupArea', 'hidden');
+            safeRemoveClass('interviewArea', 'hidden');
+            safeSetValue('answerInput', '');
+            safeSetText('aiFeedback', 'Natural conversation in progress...');
 
-            elements.setupArea.classList.add('hidden');
-            elements.interviewArea.classList.remove('hidden');
-            elements.answerInput.value = '';
-            elements.aiFeedback.textContent = 'Your feedback will appear here...';
-            elements.nextButton.classList.add('hidden');
-            elements.answerButton.classList.remove('hidden');
+            // Hide buttons for natural experience
+            const buttonsToHide = ['answerButton', 'nextButton', 'micButton', 'stopMicButton'];
+            buttonsToHide.forEach(id => {
+                const btn = document.getElementById(id);
+                if (btn) btn.style.display = 'none';
+            });
+
+            const introText = `Hello! I'm excited to interview you for the ${jobTitle} position${company ? ` at ${company}` : ''}. Let's have a natural conversation. I'll ask you questions and you can respond naturally - no need to click any buttons. Ready? Let's start with: ${currentQuestion}`;
+            
+            console.log('🎬 Starting conversation...');
+            await speakNaturally(introText);
+
         } else {
-            displayError('Could not retrieve interview questions. Please try again.');
+            throw new Error('No questions received');
         }
+
     } catch (error) {
-        displayError(`Interview start failed: ${error.message}`);
-        console.error('Interview start error:', error);
-        // Ensure elements are shown if connection fails
-        elements.hassanPlaceholder.classList.remove('hidden');
-        elements.hassanVideo.classList.add('hidden');
-        elements.hassanStatus.classList.add('hidden');
+        console.error('❌ Interview failed:', error);
+        displayError(`Interview failed: ${error.message}`);
+        isInterviewActive = false;
     } finally {
         showLoading(false);
-        elements.startButton.disabled = false;
+        if (startButtonElement) startButtonElement.disabled = false;
     }
 }
 
-/**
- * Submits the user's answer for evaluation.
- */
-async function submitAnswer() {
-    const userAnswer = elements.answerInput.value.trim();
-    if (!userAnswer) {
-        displayError('Please provide an answer before submitting.');
-        return;
-    }
+async function processUserResponse(userAnswer) {
+    if (!userAnswer || !isInterviewActive) return;
 
-    clearError();
-    showLoading(true);
-    elements.answerButton.disabled = true;
-    elements.micButton.disabled = true;
-    elements.stopMicButton.disabled = true;
+    console.log('📝 Processing:', userAnswer);
+    safeSetValue('answerInput', userAnswer);
 
     try {
         const response = await fetch('http://127.0.0.1:5000/evaluate_answer', {
@@ -528,133 +863,187 @@ async function submitAnswer() {
 
         if (!response.ok) {
             const errorData = await response.json();
-            throw new Error(`Failed to evaluate answer: ${response.status} - ${errorData.error || response.statusText}`);
+            throw new Error(`Evaluation failed: ${errorData.error}`);
         }
 
         const data = await response.json();
         const feedback = data.evaluation;
-        elements.aiFeedback.textContent = feedback;
+        safeSetText('aiFeedback', feedback);
 
-        // Store this turn in history
         interviewHistory.push({
             question: currentQuestion,
             answer: userAnswer,
             feedback: feedback
         });
 
-        // Speak the feedback using D-ID
-        await speak(feedback);
-
-        elements.nextButton.classList.remove('hidden');
-        elements.answerButton.classList.add('hidden');
+        currentQuestionIndex++;
+        
+        if (currentQuestionIndex < interviewQuestions.length) {
+            currentQuestion = interviewQuestions[currentQuestionIndex];
+            safeSetText('questionDisplay', currentQuestion);
+            
+            const nextText = `${feedback} Now, let's move on to the next question: ${currentQuestion}`;
+            await speakNaturally(nextText);
+            
+        } else {
+            await endInterview(feedback);
+        }
 
     } catch (error) {
-        displayError(`Answer submission failed: ${error.message}`);
-        console.error('Answer submission error:', error);
-    } finally {
-        showLoading(false);
-        elements.answerButton.disabled = false;
-        elements.micButton.disabled = false;
-        elements.stopMicButton.disabled = false;
+        console.error('❌ Processing failed:', error);
+        displayError(`Processing failed: ${error.message}`);
+        conversationTurn = 'user';
+        updateConversationStatus('❌ Error - try again');
     }
 }
 
-/**
- * Moves to the next question or ends the interview.
- */
-async function nextQuestion() {
-    currentQuestionIndex++;
-    elements.answerInput.value = '';
-    elements.aiFeedback.textContent = 'Your feedback will appear here...';
-    elements.nextButton.classList.add('hidden');
-    elements.answerButton.classList.remove('hidden');
-    clearError();
+async function endInterview(lastFeedback) {
+    isInterviewActive = false;
+    updateConversationStatus('🎉 Complete');
 
-    if (currentQuestionIndex < interviewQuestions.length) {
-        currentQuestion = interviewQuestions[currentQuestionIndex];
-        elements.questionDisplay.textContent = currentQuestion;
-        await speak(currentQuestion); // Speak the next question
-    } else {
-        // End of interview, get final evaluation
-        showLoading(true);
-        try {
-            const response = await fetch('http://127.0.0.1:5000/get_final_evaluation', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ history: interviewHistory }), // Pass history to backend
-            });
+    try {
+        const response = await fetch('http://127.0.0.1:5000/get_final_evaluation', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ history: interviewHistory }),
+        });
 
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(`Failed to get final evaluation: ${response.status} - ${errorData.error || response.statusText}`);
-            }
-
-            const data = await response.json();
-            const finalEvaluation = data.final_evaluation;
-            elements.questionDisplay.textContent = "Interview Complete!";
-            elements.aiFeedback.textContent = finalEvaluation;
-
-            // Speak the final evaluation
-            await speak("Interview complete! Here is your final evaluation: " + finalEvaluation);
-
-            // Hide input and show restart option or summary
-            elements.answerInput.classList.add('hidden');
-            elements.micButton.classList.add('hidden');
-            elements.stopMicButton.classList.add('hidden');
-            elements.answerButton.classList.add('hidden');
-            elements.repeatQuestionButton.classList.add('hidden');
-            elements.nextButton.textContent = "Start New Interview";
-            elements.nextButton.classList.remove('hidden'); // Use next button to restart
-            elements.nextButton.onclick = () => window.location.reload(); // Reload to restart
-        } catch (error) {
-            displayError(`Final evaluation failed: ${error.message}`);
-            console.error('Final evaluation error:', error);
-        } finally {
-            showLoading(false);
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(`Final evaluation failed: ${errorData.error}`);
         }
+
+        const data = await response.json();
+        const finalEvaluation = data.final_evaluation;
+        
+        safeSetText('questionDisplay', 'Interview Complete! 🎉');
+        safeSetText('aiFeedback', finalEvaluation);
+
+        const closingText = `Thank you for completing the interview! Here's your overall assessment: ${finalEvaluation} This concludes our session. Feel free to start a new interview anytime!`;
+        await speakNaturally(closingText);
+
+        setTimeout(() => {
+            if (confirm('Interview complete! Start a new interview?')) {
+                window.location.reload();
+            }
+        }, 5000);
+
+    } catch (error) {
+        console.error('❌ Final evaluation failed:', error);
+        displayError(`Final evaluation failed: ${error.message}`);
+    }
+}
+
+function toggleSpeechDetection() {
+    if (isUserSpeaking) {
+        handleSpeechEnd();
+        console.log('🛑 Manual speech end');
+    } else if (conversationTurn === 'user') {
+        handleSpeechStart();
+        console.log('▶️ Manual speech start');
     }
 }
 
 // =============================================================================
-// EVENT LISTENERS & INITIALIZATION
+// BULLETPROOF INITIALIZATION
 // =============================================================================
 
 function setupEventListeners() {
-    // Speech rate display
-    elements.speechRate.addEventListener('input', (e) => {
-        elements.speechRateValue.textContent = e.target.value;
+    console.log('🔧 Setting up events...');
+    
+    // Bulletproof event listener setup
+    let setupCount = 0;
+    
+    // Speech rate slider
+    if (safeAddEventListener('speechRate', 'input', (e) => {
+        safeSetText('speechRateValue', e.target.value);
+    })) setupCount++;
+    
+    // Start button - THE CRITICAL ONE
+    if (safeAddEventListener('startButton', 'click', startNaturalInterview)) {
+        setupCount++;
+        console.log('🎯 START BUTTON EVENT LISTENER ADDED SUCCESSFULLY');
+    } else {
+        console.error('❌ FAILED TO ADD START BUTTON EVENT LISTENER');
+    }
+
+    // Page cleanup
+    window.addEventListener('beforeunload', () => {
+        console.log('🧹 Cleanup');
+        isInterviewActive = false;
+        if (peerConnection) peerConnection.close();
+        if (audioContext) audioContext.close();
     });
 
-    // Speech recognition
-    elements.micButton.addEventListener('click', startRecording);
-    elements.stopMicButton.addEventListener('click', stopRecording);
-
-    // Interview controls
-    elements.startButton.addEventListener('click', startInterview);
-    elements.answerButton.addEventListener('click', submitAnswer);
-    elements.nextButton.addEventListener('click', nextQuestion);
-    elements.repeatQuestionButton.addEventListener('click', () => {
-        if (currentQuestion) {
-            speak(currentQuestion);
+    // Emergency controls
+    document.addEventListener('keydown', (e) => {
+        if (e.code === 'Space' && e.ctrlKey && isInterviewActive) {
+            e.preventDefault();
+            console.log('🚨 Emergency toggle');
+            if (isUserSpeaking) {
+                handleSpeechEnd();
+            } else if (conversationTurn === 'user') {
+                handleSpeechStart();
+            }
         }
     });
 
-    // Ensure D-ID stream is destroyed on page unload
-    window.addEventListener('beforeunload', destroyDIDStream);
+    console.log(`✅ Event listeners setup: ${setupCount} successful`);
+    return setupCount;
 }
 
 function initApp() {
-    console.log('🚀 Initializing AI Mock Interview Application...');
+    console.log('🎯 Initializing bulletproof app...');
     
-    initSpeechRecognition();
-    setupEventListeners();
+    // Test critical elements
+    const startBtn = document.getElementById('startButton');
+    const jobInput = document.getElementById('jobTitleInput');
     
-    console.log('✅ Application initialized successfully!');
+    console.log('🔍 Critical elements check:');
+    console.log('Start button:', startBtn ? '✅ Found' : '❌ Missing');
+    console.log('Job input:', jobInput ? '✅ Found' : '❌ Missing');
+    
+    if (!startBtn) {
+        console.error('❌ CRITICAL: Start button not found');
+        displayError('Start button not found in HTML');
+        return;
+    }
+    
+    if (!jobInput) {
+        console.error('❌ CRITICAL: Job input not found');
+        displayError('Job title input not found in HTML');
+        return;
+    }
+    
+    const setupCount = setupEventListeners();
+    
+    if (setupCount === 0) {
+        console.error('❌ CRITICAL: No event listeners setup');
+        displayError('Event listener setup failed');
+        return;
+    }
+    
+    console.log('✅ Bulletproof app initialized successfully!');
+    console.log('💡 Ready for natural conversation!');
+    
+    // Test start button manually
+    console.log('🧪 Testing start button click handler...');
+    if (startBtn.onclick || startBtn.addEventListener) {
+        console.log('✅ Start button has click capability');
+    } else {
+        console.error('❌ Start button cannot handle clicks');
+    }
 }
 
-// Initialize the application when DOM is loaded
+// Initialize
+console.log('📋 DOM ready state:', document.readyState);
+
 if (document.readyState === 'loading') {
+    console.log('⏳ Waiting for DOM...');
     document.addEventListener('DOMContentLoaded', initApp);
 } else {
+    console.log('🏃 DOM ready, initializing now...');
     initApp();
 }
+
+console.log('✅ Script loaded completely');

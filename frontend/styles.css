@@ -1,123 +1,488 @@
-/* AI Mock Interview - Styles */
+/* AI Mock Interview - Enhanced Natural Conversation Styles */
 
-/* Avatar Canvas (Removed as it's no longer used) */
-/* #avatar-canvas {
-    width: 400px;
-    height: 500px;
-    border: 2px solid #e5e7eb;
-    border-radius: 8px;
-    background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
-    display: block;
-    margin: 0 auto;
-} */
+/* =============================================================================
+   GLOBAL STYLES & ANIMATIONS
+   ============================================================================= */
 
-/* Speech Button Animations */
-.speech-button {
-    transition: all 0.3s ease;
+:root {
+  --primary-blue: #3b82f6;
+  --primary-purple: #8b5cf6;
+  --success-green: #10b981;
+  --warning-yellow: #f59e0b;
+  --error-red: #ef4444;
+  --text-primary: #1f2937;
+  --text-secondary: #6b7280;
+  --background-light: #f8fafc;
+  --border-light: #e5e7eb;
+  --shadow-soft: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-medium: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
 }
 
-.speech-button.recording {
-    background-color: #ef4444 !important;
-    animation: pulse 1.5s infinite;
+* {
+  box-sizing: border-box;
 }
 
-@keyframes pulse {
-    0%, 100% { 
-        transform: scale(1); 
-    }
-    50% { 
-        transform: scale(1.05); 
-    }
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  line-height: 1.6;
+  color: var(--text-primary);
+  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+  min-height: 100vh;
 }
 
-/* Voice Controls Layout */
-.voice-controls {
-    display: flex;
+/* =============================================================================
+   CONVERSATION STATUS & INDICATORS
+   ============================================================================= */
+
+#conversationStatus {
+  font-weight: 600;
+  transition: all 0.3s ease;
+  padding: 4px 12px;
+  border-radius: 20px;
+  background-color: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(10px);
+}
+
+.conversation-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: 25px;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  transition: all 0.3s ease;
+}
+
+.conversation-indicator.active {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(59, 130, 246, 0.1) 100%);
+  border-color: rgba(16, 185, 129, 0.3);
+}
+
+.conversation-indicator.listening {
+  animation: pulse-listening 2s infinite;
+}
+
+@keyframes pulse-listening {
+  0%, 100% { 
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4);
+  }
+  50% { 
+    transform: scale(1.02);
+    box-shadow: 0 0 0 10px rgba(16, 185, 129, 0);
+  }
+}
+
+/* =============================================================================
+   AUDIO VISUALIZER
+   ============================================================================= */
+
+#audioVisualizer {
+  display: flex;
+  align-items: end;
+  gap: 2px;
+  height: 24px;
+  padding: 0 8px;
+}
+
+#audioVisualizer > div {
+  width: 3px;
+  background-color: var(--text-secondary);
+  border-radius: 2px;
+  transition: all 0.15s ease;
+  opacity: 0.3;
+}
+
+#audioVisualizer.active > div {
+  animation: audio-bars 0.8s ease-in-out infinite alternate;
+}
+
+#audioVisualizer.listening > div {
+  background-color: var(--success-green);
+}
+
+@keyframes audio-bars {
+  0% { transform: scaleY(0.3); }
+  100% { transform: scaleY(1); }
+}
+
+#audioVisualizer > div:nth-child(1) { animation-delay: 0s; }
+#audioVisualizer > div:nth-child(2) { animation-delay: 0.1s; }
+#audioVisualizer > div:nth-child(3) { animation-delay: 0.2s; }
+#audioVisualizer > div:nth-child(4) { animation-delay: 0.3s; }
+#audioVisualizer > div:nth-child(5) { animation-delay: 0.4s; }
+#audioVisualizer > div:nth-child(6) { animation-delay: 0.5s; }
+#audioVisualizer > div:nth-child(7) { animation-delay: 0.6s; }
+
+/* =============================================================================
+   ENHANCED INTERVIEW INTERFACE
+   ============================================================================= */
+
+.question-card {
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.05) 0%, rgba(59, 130, 246, 0.05) 100%);
+  border: 1px solid rgba(139, 92, 246, 0.2);
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 24px;
+  position: relative;
+  overflow: hidden;
+}
+
+.question-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, var(--primary-purple), var(--primary-blue));
+}
+
+.transcript-area {
+  background: white;
+  border: 2px solid var(--border-light);
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 20px;
+  position: relative;
+  transition: all 0.3s ease;
+  box-shadow: var(--shadow-soft);
+}
+
+.transcript-area.listening {
+  border-color: var(--success-green);
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+}
+
+.transcript-area.processing {
+  border-color: var(--primary-blue);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+#answerInput {
+  font-size: 16px;
+  line-height: 1.6;
+  border: none;
+  background: transparent;
+  resize: none;
+  width: 100%;
+  min-height: 120px;
+  outline: none;
+  font-family: inherit;
+}
+
+#answerInput::placeholder {
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
+/* =============================================================================
+   FEEDBACK & STATUS AREAS
+   ============================================================================= */
+
+.feedback-card {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.05) 0%, rgba(59, 130, 246, 0.05) 100%);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+  border-radius: 12px;
+  padding: 24px;
+  position: relative;
+  overflow: hidden;
+}
+
+.feedback-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, var(--success-green), var(--primary-blue));
+}
+
+.status-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.live-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--success-green);
+}
+
+.live-dot {
+  width: 8px;
+  height: 8px;
+  background-color: var(--success-green);
+  border-radius: 50%;
+  animation: pulse-dot 2s infinite;
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+/* =============================================================================
+   ENHANCED BUTTONS & INTERACTIONS
+   ============================================================================= */
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--primary-blue), var(--primary-purple));
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 12px 24px;
+  font-weight: 600;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: var(--shadow-soft);
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-medium);
+}
+
+.btn-primary:active {
+  transform: translateY(0);
+}
+
+.btn-primary::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.5s;
+}
+
+.btn-primary:hover::before {
+  left: 100%;
+}
+
+/* =============================================================================
+   AVATAR & VIDEO STYLING
+   ============================================================================= */
+
+#avatarDisplayArea {
+  position: relative;
+  border: 2px solid rgba(139, 92, 246, 0.2);
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #1a1a2e 100%);
+  box-shadow: var(--shadow-medium);
+  overflow: hidden;
+}
+
+#avatarDisplayArea::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: radial-gradient(circle at center, rgba(139, 92, 246, 0.1) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 1;
+}
+
+#hassanVideo {
+  position: relative;
+  z-index: 2;
+}
+
+#hassanStatus {
+  z-index: 3;
+  backdrop-filter: blur(10px);
+  border-radius: 6px;
+  font-weight: 500;
+}
+
+#hassanPlaceholder {
+  z-index: 2;
+}
+
+/* =============================================================================
+   RESPONSIVE DESIGN
+   ============================================================================= */
+
+@media (max-width: 768px) {
+  .grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  
+  #avatarDisplayArea {
+    height: 300px;
+    margin-bottom: 20px;
+  }
+  
+  .conversation-indicator {
+    padding: 6px 12px;
+    font-size: 12px;
+  }
+  
+  #audioVisualizer {
+    height: 20px;
+  }
+  
+  .transcript-area {
+    padding: 16px;
+  }
+  
+  #answerInput {
+    font-size: 14px;
+    min-height: 100px;
+  }
+}
+
+@media (max-width: 480px) {
+  body {
+    padding: 16px 8px;
+  }
+  
+  .max-w-6xl {
+    padding: 16px;
+  }
+  
+  .question-card, .feedback-card {
+    padding: 16px;
+  }
+  
+  .status-header {
+    flex-direction: column;
+    align-items: flex-start;
     gap: 8px;
-    align-items: center;
-    margin-top: 8px;
+  }
 }
 
-/* Status Indicators (Adjusted for D-ID status) */
-/* Removed specific status-loading, status-ready styles as D-ID status text is handled directly */
-.status-indicator {
-    display: inline-block;
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    margin-right: 8px;
-    background-color: gray; /* Default */
+/* =============================================================================
+   UTILITY CLASSES
+   ============================================================================= */
+
+.hidden {
+  display: none !important;
 }
 
-/* General Button Styling */
-button {
-    cursor: pointer;
-    border: none;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+.fade-in {
+  animation: fadeIn 0.5s ease-out;
 }
 
-button:hover {
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+.slide-up {
+  animation: slideUp 0.5s ease-out;
 }
 
-button:active {
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
     transform: translateY(0);
+  }
 }
 
-/* Loading Spinner */
-.animate-spin {
-    animation: spin 1s linear infinite;
+.text-gradient {
+  background: linear-gradient(135deg, var(--primary-blue), var(--primary-purple));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.loading-spinner {
+  border: 3px solid rgba(59, 130, 246, 0.1);
+  border-radius: 50%;
+  border-top: 3px solid var(--primary-blue);
+  width: 24px;
+  height: 24px;
+  animation: spin 1s linear infinite;
 }
 
 @keyframes spin {
-    from {
-        transform: rotate(0deg);
-    }
-    to {
-        transform: rotate(360deg);
-    }
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
-/* Smooth Transitions */
-.transition {
-    transition-property: all;
-    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-    transition-duration: 150ms;
+/* =============================================================================
+   ERROR & SUCCESS STATES
+   ============================================================================= */
+
+.error-state {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.05) 0%, rgba(239, 68, 68, 0.1) 100%);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  color: #dc2626;
 }
 
-/* Hidden State */
-.hidden {
-    display: none !important;
+.success-state {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.05) 0%, rgba(16, 185, 129, 0.1) 100%);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+  color: #059669;
 }
 
-/* Text Area Styling */
-textarea {
-    resize: vertical;
-    min-height: 100px;
+.warning-state {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.05) 0%, rgba(245, 158, 11, 0.1) 100%);
+  border: 1px solid rgba(245, 158, 11, 0.2);
+  color: #d97706;
 }
 
-/* Error Display */
-#errorDisplay {
-    border-left: 4px solid #ef4444;
+/* =============================================================================
+   ACCESSIBILITY IMPROVEMENTS
+   ============================================================================= */
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
-/* Feedback Area */
-#feedbackArea {
-    border-left: 4px solid #3b82f6;
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
-/* Interview Area Entrance Animation */
-#interviewArea {
-    animation: fadeInUp 0.5s ease-out;
+/* Focus styles for better accessibility */
+button:focus,
+input:focus,
+textarea:focus {
+  outline: 3px solid rgba(59, 130, 246, 0.5);
+  outline-offset: 2px;
 }
 
-@keyframes fadeInUp {
-    from {
-        opacity: 0;
-        transform: translateY(20px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  :root {
+    --primary-blue: #0066cc;
+    --primary-purple: #6600cc;
+    --success-green: #008800;
+    --error-red: #cc0000;
+    --text-primary: #000000;
+    --text-secondary: #333333;
+  }
 }

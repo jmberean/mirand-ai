@@ -1,252 +1,189 @@
-# mirand-ai
-A voice-based mock interview coach that helps you practice and improve through realistic phone interviews and feedback.
+# AI Mock Interview - Refactored
 
-# AI Mock Interview Platform
+A clean, production-ready AI-powered mock interview application with natural conversation flow, speech recognition, and AI video avatars.
 
-An AI-powered mock interview system featuring realistic 3D avatar interviewers, real-time speech processing, and intelligent feedback generation.
+## 🎯 Key Improvements
 
-## 🎯 Project Overview
+### ✅ Fixed Issues
+- **Complete Flask API**: Added all missing routes and proper error handling
+- **Simplified JavaScript**: Removed over-engineering, kept core functionality
+- **Better Security**: Proper API key management and validation
+- **Clean Architecture**: Separated concerns and removed redundancy
+- **Production Ready**: Added health checks, error handlers, and configuration
 
-### Core Functionality
-- **AI-powered mock interview system** with realistic 3D avatar interviewer
-- **Speech-to-text** for voice answers and **text-to-speech** for questions
-- **Real-time facial animations** during speech
-- **AI evaluation and feedback** using OpenAI and Perplexity APIs
+### 🗑️ Removed Complexity
+- Over-engineered voice activity detection
+- Unnecessary defensive programming
+- Redundant UI elements
+- Complex conversation flow logic
+- Bulletproof element access (simplified to standard JS)
 
-## 🏗️ Architecture
+## 🚀 Quick Start
 
-### Backend (Flask)
-- **`app.py`** - Main Flask server with CORS enabled
-- **`utils.py`** - API integration (Perplexity for questions, OpenAI for evaluation)
-- **Session-based interview history** storage
-- **Three main endpoints**: `/get_questions`, `/evaluate_answer`, `/get_final_evaluation`
-
-### Frontend (Vanilla JS + Three.js)
-- **`index.html`** - Clean UI with Tailwind CSS
-- **`script.js`** - Complex Three.js avatar system with facial morphing
-- **`styles.css`** - Responsive styling with animations
-
-## ✨ Key Technical Features
-
-### 🤖 3D Avatar System
-- Uses **Ready Player Me avatars** with ARKit facial morphs
-- **Real-time lip sync** and facial animations during speech
-- **Fallback avatar system** for reliability
-- Professional lighting and camera controls
-
-### 🎤 Speech Integration
-- **Web Speech API** for voice recognition
-- **Speech Synthesis API** with customizable voices
-- **Synchronized facial animations** with speech
-
-### 🧠 AI Integration
-- **Perplexity API** for generating relevant interview questions
-- **OpenAI GPT-4** for answer evaluation and final assessment
-- **Graceful fallbacks** when APIs are unavailable
-
-### 🎨 User Experience
-- Responsive design with mobile support
-- Real-time feedback and loading states
-- Professional interview simulation flow
-
-## 🔧 Technical Highlights
-
-The **facial animation system** is particularly sophisticated - it maps speech synthesis events to realistic mouth movements using morph targets, with proper material updates and geometry refreshing for smooth animations.
-
-The **error handling** is robust, with fallback mechanisms for both API failures and avatar loading issues.
-
-## 🚀 MVP2 Vision: Enhanced Interview Platform
-
-### 🎯 Core Enhancement Paths
-
-#### Option A: Industry-Specific Intelligence
-- **Smart Question Banks**: Pre-built question sets for different roles (SWE, Product Manager, Sales, etc.)
-- **Company-Specific Prep**: Real interview questions scraped/crowdsourced from major companies
-- **Technical Assessments**: Coding challenges, system design boards, case studies
-- **Industry Benchmarking**: "You scored better than 73% of candidates for this role"
-
-#### Option B: Advanced AI Coaching
-- **Real-time Speech Analysis**: Pace, filler words, confidence detection
-- **Body Language Feedback**: Posture, eye contact, gesture analysis via webcam
-- **Personality Profiling**: STAR method coaching, communication style adaptation
-- **Adaptive Difficulty**: AI adjusts question complexity based on performance
-
-#### Option C: Social & Gamification
-- **Peer Practice Network**: Match users for mock interviews with each other
-- **Interview Competitions**: Leaderboards, achievement badges, streaks
-- **Expert Review**: Pay for human recruiter feedback on recorded sessions
-- **Study Groups**: Team preparation for specific companies/roles
-
-### 🚀 High-Impact Features (Pick 2-3)
-
-#### 1. Smart Recording & Analytics
-```javascript
-// New recording system with detailed analytics
-const interviewAnalytics = {
-  speechMetrics: {
-    wordsPerMinute: 150,
-    fillerWordCount: 12,
-    pauseAnalysis: "Appropriate pacing",
-    confidenceScore: 8.2
-  },
-  contentAnalysis: {
-    starMethodUsage: "2/5 questions",
-    specificityScore: 7.1,
-    relevanceScore: 8.8
-  },
-  improvementPlan: [
-    "Practice STAR method for behavioral questions",
-    "Reduce filler words with pause practice"
-  ]
-}
-```
-
-#### 2. Multi-Modal Interview Types
-- **Coding Interviews**: Integrated code editor with AI code review
-- **System Design**: Interactive whiteboard with component libraries
-- **Case Studies**: Business scenario simulations with data analysis
-- **Presentation Mode**: Upload slides, practice pitches
-
-#### 3. Advanced Avatar System
-- **Multiple Interviewer Personas**: Friendly HR vs. Technical Lead vs. CEO personalities
-- **Panel Interviews**: Multiple avatars asking different question types
-- **Industry-Specific Avatars**: Startup casual vs. corporate formal
-- **Emotional Intelligence**: Avatar reacts to your confidence level
-
-#### 4. Comprehensive Progress Tracking
-```python
-# Enhanced backend with user profiles
-class UserProgress:
-    def __init__(self):
-        self.skill_levels = {
-            'technical': 6.2,
-            'behavioral': 7.8,
-            'communication': 5.9
-        }
-        self.interview_history = []
-        self.target_companies = ['Google', 'Meta']
-        self.improvement_trajectory = []
-        self.next_session_recommendations = []
-```
-
-### 🎨 UI/UX Enhancements
-
-#### Professional Dashboard
-- **Performance Timeline**: Progress graphs over time
-- **Skill Radar Chart**: Visual breakdown of strengths/weaknesses
-- **Company Readiness Score**: "You're 78% ready for Google interviews"
-- **Recommended Practice Plan**: AI-generated study schedule
-
-#### Interview Replay System
-- **Video Playback**: Review your performance with AI annotations
-- **Moment-by-Moment Feedback**: Hover over timeline for specific tips
-- **Side-by-Side Comparison**: Compare current vs. previous attempts
-- **Shareable Highlights**: Export best answers to LinkedIn
-
-### 💰 Monetization Features
-
-#### Freemium Model
-- **Free**: 3 interviews/month, basic feedback
-- **Pro ($19/month)**: Unlimited interviews, detailed analytics, expert reviews
-- **Enterprise**: Company-wide licenses for recruitment training
-
-#### Premium Services
-- **Human Expert Reviews**: $50 for detailed recruiter feedback
-- **Custom Question Banks**: Companies can upload their actual questions
-- **White-Label Solution**: Sell to universities/bootcamps
-
-### 🔧 Technical Architecture Upgrades
-
-#### Backend Improvements
-```python
-# Microservices architecture
-services = {
-    'user_service': 'User profiles, progress tracking',
-    'content_service': 'Question banks, company data',
-    'ai_service': 'Evaluation, coaching recommendations',
-    'analytics_service': 'Performance metrics, insights',
-    'notification_service': 'Practice reminders, achievements'
-}
-```
-
-#### Database Design
-- **User Profiles**: Detailed skill tracking, preferences, goals
-- **Question Taxonomy**: Tagged by difficulty, company, role, topic
-- **Performance Analytics**: Granular metrics for trend analysis
-- **Content Management**: Version-controlled question banks
-
-## 🎯 MVP2 Recommendation: "The Smart Coach"
-
-**Focus on**: Option A + Feature 1: Industry-specific intelligence with smart analytics.
-
-### Why this combo:
-1. **Clear Value Prop**: "Practice real [Company] [Role] questions with AI coaching"
-2. **Data Advantage**: Build proprietary question/answer databases
-3. **Viral Potential**: "I just practiced Meta PM questions" social sharing
-4. **Monetization Ready**: Premium company packs, expert reviews
-5. **Technical Feasibility**: Builds on existing strengths
-
-### 3-Month Roadmap:
-- **Month 1**: Question taxonomy, basic analytics
-- **Month 2**: Company-specific question packs, improved UI
-- **Month 3**: Advanced coaching features, monetization
-
-This positions the platform as the **"GitHub Copilot for interview prep"** - intelligent, specific, and indispensable for serious job seekers.
-
-## 🛠️ Getting Started
-
-### Prerequisites
+### 1. Prerequisites
 - Python 3.8+
-- Node.js (for development)
-- OpenAI API Key
-- Perplexity API Key
+- Node.js (for modern browser features)
+- Chrome/Edge browser (for speech recognition)
 
-### Installation
-
-1. **Clone the repository**
+### 2. Environment Setup
+Create a `.env` file:
 ```bash
-git clone [repository-url]
-cd ai-mock-interview
+OPENAI_API_KEY=your_openai_key_here
+PERPLEXITY_API_KEY=your_perplexity_key_here
+D_ID_API_KEY=your_did_api_key_here
 ```
 
-2. **Install Python dependencies**
+### 3. Installation
 ```bash
-pip install flask flask-cors openai
-```
+# Install Python dependencies
+pip install -r requirements.txt
 
-3. **Set environment variables**
-```bash
-export OPENAI_API_KEY="your-openai-key"
-export PERPLEXITY_API_KEY="your-perplexity-key"
-```
-
-4. **Run the backend**
-```bash
+# Start the Flask backend
 python app.py
-```
 
-5. **Open the frontend**
-```bash
-# Open index.html in your browser or serve with a local server
+# Open index.html in Chrome/Edge
+# Or serve with a simple HTTP server:
 python -m http.server 8000
 ```
 
-### Usage
+### 4. Usage
+1. Enter job title and company (optional)
+2. Click "Start Interview" 
+3. Allow microphone and camera permissions
+4. Speak naturally - no button clicking needed!
+5. Get AI feedback and progress through questions
 
-1. Enter your target job title and company
-2. Customize voice settings and avatar preferences
-3. Start the interview and answer questions via text or voice
-4. Receive real-time AI feedback and coaching
-5. Review your final evaluation and improvement recommendations
+## 🏗️ Architecture
 
-## 🤝 Contributing
+### Backend (`app.py`)
+- **Flask API** with proper route definitions
+- **Error handling** with HTTP status codes
+- **Configuration management** with validation
+- **D-ID integration** for video streaming
+- **Health checks** for monitoring
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+### AI Logic (`utils.py`)
+- **Question generation** via Perplexity API
+- **Answer evaluation** using OpenAI GPT-4
+- **Natural conversation** flow management
+- **Fallback handling** when APIs fail
+
+### Frontend (`script.js`)
+- **Speech recognition** with automatic detection
+- **Voice activity detection** (simplified)
+- **D-ID video streaming** integration
+- **Real-time transcript** display
+- **Clean state management**
+
+### UI (`index.html`)
+- **Modern design** with Tailwind CSS
+- **Responsive layout** (60/40 video/content split)
+- **Progressive disclosure** (setup → interview → results)
+- **Accessibility** improvements
+
+## 🔧 API Endpoints
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/health` | GET | Health check |
+| `/get_questions` | POST | Generate interview questions |
+| `/evaluate_answer` | POST | Evaluate candidate response |
+| `/get_final_evaluation` | POST | Generate final assessment |
+| `/create_did_stream` | POST | Create D-ID video stream |
+| `/did_stream_sdp` | POST | Handle WebRTC SDP |
+| `/did_stream_ice` | POST | Handle ICE candidates |
+| `/did_stream_talk` | POST | Send text for speech synthesis |
+
+## 🛠️ Configuration
+
+### Environment Variables
+```bash
+OPENAI_API_KEY=sk-...          # OpenAI API key
+PERPLEXITY_API_KEY=pplx-...    # Perplexity API key  
+D_ID_API_KEY=...               # D-ID API key
+```
+
+### Frontend Config (script.js)
+```javascript
+const CONFIG = {
+    API_BASE_URL: 'http://127.0.0.1:5000',
+    SPEECH_TIMEOUT: 3000,
+    AI_RESPONSE_DELAY: 1000,
+    VAD_THRESHOLD: 0.02,
+    SILENCE_FRAMES: 60
+};
+```
+
+## 🐛 Troubleshooting
+
+### Common Issues
+
+**Microphone not working:**
+- Ensure Chrome/Edge browser
+- Check browser permissions
+- Test with `chrome://settings/content/microphone`
+
+**D-ID video not loading:**
+- Verify D-ID API key
+- Check browser console for WebRTC errors
+- Ensure stable internet connection
+
+**API errors:**
+- Verify all API keys in `.env`
+- Check Flask server logs
+- Test endpoints with curl/Postman
+
+**Speech recognition stops:**
+- Press Ctrl+Space to manually trigger
+- Check browser console for errors
+- Restart the interview if needed
+
+### Debug Commands
+```bash
+# Test API endpoints
+curl http://localhost:5000/health
+
+# Check Flask logs
+python app.py  # See console output
+
+# Browser debug
+# Open DevTools (F12) and check Console tab
+```
+
+## 🚀 Production Deployment
+
+### Security Checklist
+- [ ] Move API keys to secure secret management
+- [ ] Add rate limiting to API endpoints  
+- [ ] Enable HTTPS for all connections
+- [ ] Add authentication for admin features
+- [ ] Configure CORS for production domains
+
+### Scaling Considerations
+- [ ] Use Redis for session storage
+- [ ] Add database for interview history
+- [ ] Implement load balancing
+- [ ] Add monitoring and logging
+- [ ] Cache AI responses to reduce API costs
+
+## 📝 Key Features
+
+- **Natural Conversation**: No buttons to click during interview
+- **Real-time Speech**: Live transcription and voice activity detection
+- **AI-Powered**: Smart question generation and evaluation
+- **Video Avatar**: Realistic AI interviewer via D-ID
+- **Adaptive Flow**: Questions adjust based on responses
+- **Professional UI**: Clean, modern interface
+- **Error Recovery**: Graceful handling of API failures
+
+## 🎓 Usage Tips
+
+1. **Speak clearly** and at normal pace
+2. **Pause briefly** when finished answering
+3. **Use specific examples** in your responses
+4. **Practice different roles** to improve skills
+5. **Review AI feedback** for improvement areas
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
-
-## 🙋‍♂️ Support
-
-For questions or support, please open an issue in the repository or contact the development team.
+MIT License - feel free to modify and use for your projects!

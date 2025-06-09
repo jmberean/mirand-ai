@@ -3,232 +3,391 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Mock Interview</title>
+    <title>AI Mock Interview - Enhanced Experience</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <style>
-        .gradient-bg {
-            background: linear-gradient(135deg, #1e3a8a 0%, #3730a3 50%, #7c3aed 100%);
+        /* Enhanced Styles */
+        .interview-container {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         }
         
-        .glass-effect {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
+        .avatar-container {
+            background: linear-gradient(145deg, #1a1a2e, #16213e);
+            border: 3px solid #4f46e5;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
         }
         
-        .animate-pulse-soft {
-            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        .status-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        
+        .status-listening {
+            background: linear-gradient(45deg, #10b981, #059669);
+            color: white;
+            animation: pulse 2s infinite;
+        }
+        
+        .status-ai-speaking {
+            background: linear-gradient(45deg, #3b82f6, #1d4ed8);
+            color: white;
+        }
+        
+        .status-ready {
+            background: linear-gradient(45deg, #6b7280, #4b5563);
+            color: white;
+        }
+        
+        .status-processing {
+            background: linear-gradient(45deg, #f59e0b, #d97706);
+            color: white;
+            animation: pulse 1.5s infinite;
         }
         
         @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.7; }
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.05); opacity: 0.8; }
+        }
+        
+        .transcript-area {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: 2px solid transparent;
+            transition: all 0.3s ease;
+        }
+        
+        .transcript-area.active {
+            border-color: #10b981;
+            box-shadow: 0 0 20px rgba(16, 185, 129, 0.3);
+        }
+        
+        .question-card {
+            background: linear-gradient(145deg, #ffffff, #f8fafc);
+            border-left: 5px solid #4f46e5;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+        
+        .feedback-card {
+            background: linear-gradient(145deg, #eff6ff, #dbeafe);
+            border-left: 5px solid #3b82f6;
+            box-shadow: 0 10px 30px rgba(59, 130, 246, 0.1);
+        }
+        
+        .setup-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        }
+        
+        #hassanVideo {
+            border-radius: 12px;
+            object-fit: cover;
+        }
+        
+        .floating-controls {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 50;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        
+        .control-button {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+            transition: all 0.3s ease;
+        }
+        
+        .control-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.3);
+        }
+        
+        /* Speech Button Animations */
+        .speech-button {
+            transition: all 0.3s ease;
+        }
+
+        .speech-button.recording {
+            background-color: #ef4444 !important;
+            animation: pulse 1.5s infinite;
+        }
+
+        /* Voice Controls Layout */
+        .voice-controls {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            margin-top: 8px;
+        }
+
+        /* General Button Styling */
+        button {
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        button:hover {
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        /* Loading Spinner */
+        .animate-spin {
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            from {
+                transform: rotate(0deg);
+            }
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* Smooth Transitions */
+        .transition {
+            transition-property: all;
+            transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+            transition-duration: 150ms;
+        }
+
+        /* Hidden State */
+        .hidden {
+            display: none !important;
+        }
+
+        /* Text Area Styling */
+        textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        /* Error Display */
+        #errorDisplay {
+            border-left: 4px solid #ef4444;
+        }
+
+        /* Feedback Area */
+        #feedbackArea {
+            border-left: 4px solid #3b82f6;
+        }
+
+        /* Interview Area Entrance Animation */
+        #interviewArea {
+            animation: fadeInUp 0.5s ease-out;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .interview-grid {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+            
+            .avatar-container {
+                height: 300px;
+                order: -1;
+            }
+            
+            .floating-controls {
+                bottom: 10px;
+                right: 10px;
+            }
+            
+            .control-button {
+                width: 50px;
+                height: 50px;
+                font-size: 20px;
+            }
         }
     </style>
 </head>
-<body class="bg-gray-50 min-h-screen">
-    <!-- Header -->
-    <header class="bg-white shadow-sm border-b">
-        <div class="max-w-7xl mx-auto px-4 py-6">
-            <div class="text-center">
-                <h1 class="text-3xl font-bold text-gray-900 mb-2">AI Mock Interview</h1>
-                <p class="text-gray-600">Practice interviews with AI-powered natural conversation</p>
-            </div>
-        </div>
-    </header>
-
-    <!-- Main Content -->
-    <div class="flex h-screen bg-gray-50">
-        
-        <!-- Left Side: AI Interviewer Video (60%) -->
-        <div class="w-3/5 gradient-bg relative flex flex-col">
-            
-            <!-- Video Area -->
-            <div class="flex-1 relative flex items-center justify-center p-8">
-                
-                <!-- Title -->
-                <div class="absolute top-6 left-6 z-10">
-                    <h2 class="text-2xl font-bold text-white mb-2">Your AI Interviewer</h2>
-                    <div class="flex items-center space-x-2">
-                        <div class="w-3 h-3 bg-green-400 rounded-full animate-pulse-soft"></div>
-                        <span class="text-green-300 text-sm font-medium">Ready</span>
-                    </div>
-                </div>
-
-                <!-- Video Element -->
-                <video id="hassanVideo" autoplay playsinline muted 
-                       class="w-full h-full max-w-2xl max-h-96 object-cover rounded-3xl shadow-2xl border-4 border-white/20 hidden">
-                </video>
-                
-                <!-- Video Placeholder -->
-                <div id="hassanPlaceholder" class="flex flex-col items-center justify-center text-white/80 p-8">
-                    <div class="w-32 h-32 rounded-full glass-effect flex items-center justify-center mb-6">
-                        <svg class="w-16 h-16" fill="currentColor" viewBox="0 0 20 20">
-                            <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"></path>
-                        </svg>
-                    </div>
-                    <p class="text-xl font-medium mb-2">AI Interviewer</p>
-                    <p class="text-sm opacity-75">Will appear when interview starts</p>
-                </div>
-
-                <!-- Status Indicator -->
-                <div class="absolute bottom-6 left-1/2 transform -translate-x-1/2 glass-effect rounded-full px-6 py-3">
-                    <div class="flex items-center space-x-3 text-white">
-                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                            <path fill-rule="evenodd" d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm4 10.93A7.001 7.001 0 0017 8a1 1 0 10-2 0A5 5 0 015 8a1 1 0 00-2 0 7.001 7.001 0 006 6.93V17H6a1 1 0 100 2h8a1 1 0 100-2h-3v-2.07z" clip-rule="evenodd"></path>
-                        </svg>
-                        <span id="conversationStatus" class="text-sm font-medium">Ready to start</span>
-                    </div>
-                </div>
-            </div>
+<body class="interview-container">
+    <div class="min-h-screen py-6 px-4">
+        <!-- Header -->
+        <div class="text-center mb-8">
+            <h1 class="text-4xl font-bold text-white mb-3">AI Mock Interview</h1>
+            <p class="text-blue-100 text-lg">Practice with an AI interviewer • Get instant feedback • Improve your skills</p>
         </div>
 
-        <!-- Right Side: Interview Interface (40%) -->
-        <div class="w-2/5 bg-white flex flex-col">
-            
-            <!-- Setup Phase -->
-            <div id="setupArea" class="flex-1 p-8 overflow-y-auto">
-                <div class="max-w-md mx-auto space-y-6">
+        <!-- Setup Area -->
+        <div id="setupArea" class="max-w-md mx-auto">
+            <div class="setup-card rounded-2xl p-8">
+                <h2 class="text-2xl font-bold text-gray-800 mb-6 text-center">Get Started</h2>
+                
+                <div class="space-y-6">
+                    <div>
+                        <label for="jobTitleInput" class="block text-gray-700 text-sm font-semibold mb-2">
+                            🎯 Target Job Title
+                        </label>
+                        <input type="text" id="jobTitleInput" 
+                               class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all" 
+                               placeholder="e.g., Software Engineer, Data Scientist">
+                    </div>
                     
-                    <!-- Header -->
-                    <div class="text-center mb-8">
-                        <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                            <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2-2v2m8 0V6a2 2 0 012 2v6a2 2 0 01-2 2H8a2 2 0 01-2-2V8a2 2 0 012-2h8z"></path>
-                            </svg>
-                        </div>
-                        <h2 class="text-2xl font-bold text-gray-900 mb-2">Interview Setup</h2>
-                        <p class="text-gray-600">Configure your practice session</p>
+                    <div>
+                        <label for="companyInput" class="block text-gray-700 text-sm font-semibold mb-2">
+                            🏢 Target Company (Optional)
+                        </label>
+                        <input type="text" id="companyInput" 
+                               class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all" 
+                               placeholder="e.g., Google, Microsoft, Meta">
                     </div>
 
-                    <!-- Form -->
-                    <div class="space-y-6">
-                        <div>
-                            <label for="jobTitleInput" class="block text-sm font-semibold text-gray-700 mb-2">
-                                Job Title *
-                            </label>
-                            <input type="text" id="jobTitleInput" 
-                                   class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-lg" 
-                                   placeholder="e.g., Software Engineer, Product Manager">
+                    <button id="startButton" 
+                            class="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold py-4 px-6 rounded-xl transition duration-300 transform hover:scale-105 shadow-lg">
+                        🚀 Start Interview
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Interview Interface -->
+        <div id="interviewArea" class="hidden max-w-7xl mx-auto">
+            <!-- Status Bar -->
+            <div class="flex justify-center mb-6">
+                <div id="speechStatus" class="status-indicator status-ready">
+                    <div class="w-3 h-3 bg-current rounded-full"></div>
+                    <span>Ready to begin...</span>
+                </div>
+            </div>
+
+            <!-- Interview Grid -->
+            <div class="interview-grid grid lg:grid-cols-3 gap-8">
+                <!-- AI Avatar (Prominent) -->
+                <div class="lg:col-span-2">
+                    <div class="avatar-container rounded-2xl relative overflow-hidden" style="height: 500px;">
+                        <div class="absolute top-4 left-4 z-10">
+                            <h3 class="text-white font-semibold text-lg">Your AI Interviewer</h3>
                         </div>
                         
-                        <div>
-                            <label for="companyInput" class="block text-sm font-semibold text-gray-700 mb-2">
-                                Company (Optional)
-                            </label>
-                            <input type="text" id="companyInput" 
-                                   class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-lg" 
-                                   placeholder="e.g., Google, Microsoft, Netflix">
-                        </div>
-
-                        <!-- Microphone Notice -->
-                        <div class="bg-amber-50 border border-amber-200 rounded-lg p-4">
-                            <div class="flex items-start space-x-3">
-                                <svg class="w-5 h-5 text-amber-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm4 10.93A7.001 7.001 0 0017 8a1 1 0 10-2 0A5 5 0 015 8a1 1 0 00-2 0 7.001 7.001 0 006 6.93V17H6a1 1 0 100 2h8a1 1 0 100-2h-3v-2.07z" clip-rule="evenodd"></path>
+                        <!-- D-ID Video Element -->
+                        <video id="hassanVideo" 
+                               autoplay playsinline muted 
+                               class="w-full h-full object-cover hidden">
+                        </video>
+                        
+                        <!-- Placeholder -->
+                        <div id="hassanPlaceholder" class="flex flex-col items-center justify-center h-full text-gray-400">
+                            <div class="w-32 h-32 bg-gray-600 rounded-full flex items-center justify-center mb-4">
+                                <svg class="w-16 h-16" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"></path>
                                 </svg>
-                                <div>
-                                    <h4 class="text-sm font-semibold text-amber-800 mb-1">🎤 Microphone Required</h4>
-                                    <p class="text-xs text-amber-700">This interview uses natural speech. Please allow microphone access when prompted.</p>
-                                </div>
                             </div>
+                            <p class="text-xl font-medium">AI Interviewer Loading...</p>
                         </div>
 
-                        <!-- Start Button -->
-                        <button id="startButton" 
-                                class="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold py-4 px-6 rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105">
-                            🚀 Start Interview
-                        </button>
+                        <!-- Connection Status -->
+                        <div id="hassanStatus" class="absolute bottom-4 left-4 bg-black bg-opacity-70 text-white text-sm px-3 py-2 rounded-lg hidden">
+                            Connecting...
+                        </div>
+                    </div>
+                </div>
 
-                        <!-- Info -->
-                        <div class="text-center">
-                            <p class="text-sm text-gray-500 flex items-center justify-center space-x-2">
-                                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
-                                </svg>
-                                <span>Just speak naturally - no buttons needed during interview!</span>
-                            </p>
+                <!-- Interview Content -->
+                <div class="space-y-6">
+                    <!-- Current Question -->
+                    <div class="question-card rounded-xl p-6">
+                        <h4 class="text-lg font-semibold text-gray-800 mb-3 flex items-center">
+                            <span class="w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center text-sm mr-3">Q</span>
+                            Current Question
+                        </h4>
+                        <div id="questionDisplay" class="text-gray-700 leading-relaxed">
+                            Your question will appear here...
+                        </div>
+                    </div>
+
+                    <!-- Live Transcript -->
+                    <div class="transcript-area rounded-xl p-6">
+                        <h4 class="text-lg font-semibold text-gray-800 mb-3 flex items-center">
+                            <span class="w-6 h-6 bg-green-500 text-white rounded-full flex items-center justify-center text-sm mr-3">🎤</span>
+                            Your Response
+                        </h4>
+                        <textarea id="answerInput" 
+                                  class="w-full border-0 bg-transparent resize-none focus:outline-none text-gray-700" 
+                                  rows="4" 
+                                  placeholder="Speak naturally - your response will appear here..."></textarea>
+                        <div class="text-sm text-gray-500 mt-2">
+                            💡 Tip: Speak clearly and naturally. The interview will automatically proceed when you finish speaking.
+                        </div>
+                    </div>
+
+                    <!-- AI Feedback -->
+                    <div class="feedback-card rounded-xl p-6">
+                        <h4 class="text-lg font-semibold text-blue-800 mb-3 flex items-center">
+                            <span class="w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center text-sm mr-3">💬</span>
+                            AI Feedback
+                        </h4>
+                        <div id="aiFeedback" class="text-gray-700 leading-relaxed">
+                            Your personalized feedback will appear here after each response...
                         </div>
                     </div>
                 </div>
             </div>
+        </div>
 
-            <!-- Interview Phase -->
-            <div id="interviewArea" class="hidden flex-1 flex flex-col">
-                
-                <!-- Current Question -->
-                <div class="bg-gradient-to-r from-purple-50 to-blue-50 border-b p-6">
-                    <div class="flex items-start space-x-4">
-                        <div class="w-10 h-10 bg-purple-600 rounded-full flex items-center justify-center flex-shrink-0">
-                            <svg class="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M18 3a1 1 0 00-1.447-.894L8.763 6H5a3 3 0 000 6h.28l1.771 5.316A1 1 0 008 18h1a1 1 0 001-1v-4.382l6.553 3.276A1 1 0 0018 15V3z" clip-rule="evenodd"></path>
-                            </svg>
-                        </div>
-                        <div class="flex-1">
-                            <h3 class="text-lg font-semibold text-purple-800 mb-2">Interview Question</h3>
-                            <div id="questionDisplay" class="text-gray-800 leading-relaxed"></div>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Live Transcript -->
-                <div class="bg-white border-b p-6 flex-1">
-                    <div class="flex items-center justify-between mb-4">
-                        <div class="flex items-center space-x-3">
-                            <div class="w-8 h-8 bg-green-600 rounded-full flex items-center justify-center">
-                                <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm4 10.93A7.001 7.001 0 0017 8a1 1 0 10-2 0A5 5 0 015 8a1 1 0 00-2 0 7.001 7.001 0 006 6.93V17H6a1 1 0 100 2h8a1 1 0 100-2h-3v-2.07z" clip-rule="evenodd"></path>
-                                </svg>
-                            </div>
-                            <h4 class="font-semibold text-gray-800">Your Response</h4>
-                        </div>
-                        <div class="text-sm text-gray-500">
-                            <span class="inline-block w-2 h-2 bg-green-500 rounded-full animate-pulse mr-2"></span>
-                            <span id="speechStatus">Ready</span>
-                        </div>
-                    </div>
-                    
-                    <textarea id="answerInput" 
-                              class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50 resize-none leading-relaxed min-h-32" 
-                              placeholder="Your speech will appear here in real-time..."
-                              readonly></textarea>
-                    
-                    <div class="mt-4 p-3 bg-blue-50 rounded-lg">
-                        <p class="text-sm text-blue-700">
-                            <span class="font-medium">💡 Tip:</span> 
-                            Speak naturally and pause when finished. Press Ctrl+Space to manually submit if needed.
-                        </p>
-                    </div>
-                </div>
+        <!-- Floating Controls -->
+        <div class="floating-controls hidden" id="floatingControls">
+            <button id="repeatQuestionButton" 
+                    class="control-button bg-gray-600 hover:bg-gray-700 text-white"
+                    title="Repeat Question">
+                🔊
+            </button>
+            <button id="nextButton" 
+                    class="control-button bg-purple-600 hover:bg-purple-700 text-white hidden"
+                    title="Next Question">
+                ⏭️
+            </button>
+        </div>
 
-                <!-- AI Feedback -->
-                <div class="bg-gradient-to-r from-green-50 to-blue-50 p-6">
-                    <div class="flex items-start space-x-4">
-                        <div class="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
-                            <svg class="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
-                                <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                            </svg>
-                        </div>
-                        <div class="flex-1">
-                            <h4 class="font-semibold text-blue-800 mb-3">AI Feedback</h4>
-                            <div id="aiFeedback" class="text-gray-700 leading-relaxed">
-                                Interview feedback will appear here as you progress...
-                            </div>
-                        </div>
-                    </div>
-                </div>
+        <!-- Loading Indicator -->
+        <div id="loadingIndicator" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div class="bg-white rounded-xl p-8 flex flex-col items-center">
+                <div class="animate-spin rounded-full h-12 w-12 border-4 border-blue-500 border-t-transparent mb-4"></div>
+                <span class="text-gray-700 font-medium">Processing...</span>
             </div>
+        </div>
+        
+        <!-- Error Display -->
+        <div id="errorDisplay" class="hidden fixed top-4 left-4 right-4 bg-red-500 text-white p-4 rounded-xl shadow-lg z-50 max-w-md mx-auto">
+        </div>
 
-            <!-- Error Display -->
-            <div id="errorDisplay" class="hidden mx-6 mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-                <div class="flex items-center space-x-2">
-                    <svg class="w-5 h-5 text-red-600" fill="currentColor" viewBox="0 0 20 20">
-                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
-                    </svg>
-                    <span class="text-red-700 font-medium">Error</span>
-                </div>
-                <p class="text-red-600 mt-1"></p>
-            </div>
+        <!-- Hidden elements for compatibility -->
+        <div class="hidden">
+            <button id="answerButton"></button>
+            <button id="micButton"></button>
+            <button id="stopMicButton"></button>
         </div>
     </div>
 

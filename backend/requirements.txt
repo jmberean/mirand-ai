@@ -8,3 +8,4 @@ Flask-CORS
 perplexity-client
 request
 jsonify
+werkzeug

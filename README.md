@@ -1,189 +1,289 @@
-# AI Mock Interview - Refactored
+# 🎯 AI Mock Interview - Enhanced Edition
 
-A clean, production-ready AI-powered mock interview application with natural conversation flow, speech recognition, and AI video avatars.
+A realistic AI-powered mock interview application with video avatar, smart conversation flow, and intelligent follow-up questions.
 
-## 🎯 Key Improvements
+## ✨ New Features
 
-### ✅ Fixed Issues
-- **Complete Flask API**: Added all missing routes and proper error handling
-- **Simplified JavaScript**: Removed over-engineering, kept core functionality
-- **Better Security**: Proper API key management and validation
-- **Clean Architecture**: Separated concerns and removed redundancy
-- **Production Ready**: Added health checks, error handlers, and configuration
-
-### 🗑️ Removed Complexity
-- Over-engineered voice activity detection
-- Unnecessary defensive programming
-- Redundant UI elements
-- Complex conversation flow logic
-- Bulletproof element access (simplified to standard JS)
+- **🔇 Audio Isolation**: Prevents AI speech from triggering user recognition
+- **📱 Mobile-First Design**: Optimized for phone interviews 
+- **💬 Smart Follow-ups**: AI asks relevant follow-up questions based on answer quality
+- **🎭 Prominent Avatar**: 2/3 screen dedicated to lifelike AI interviewer
+- **🧠 Enhanced Evaluation**: Comprehensive feedback with performance tracking
+- **⚡ Better Performance**: Session management, rate limiting, error handling
 
 ## 🚀 Quick Start
 
 ### 1. Prerequisites
-- Python 3.8+
-- Node.js (for modern browser features)
-- Chrome/Edge browser (for speech recognition)
 
-### 2. Environment Setup
-Create a `.env` file:
+- Python 3.8+
+- Modern web browser (Chrome, Firefox, Safari, Edge)
+- Microphone access
+- Internet connection
+
+### 2. Installation
+
 ```bash
-OPENAI_API_KEY=your_openai_key_here
-PERPLEXITY_API_KEY=your_perplexity_key_here
-D_ID_API_KEY=your_did_api_key_here
+# Clone or download the project
+git clone <your-repo-url>
+cd ai-mock-interview
+
+# Create virtual environment
+python -m venv venv
+
+# Activate virtual environment
+# On Windows:
+venv\Scripts\activate
+# On macOS/Linux:
+source venv/bin/activate
+
+# Install dependencies
+pip install -r requirements.txt
 ```
 
-### 3. Installation
-```bash
-# Install Python dependencies
-pip install -r requirements.txt
+### 3. API Keys Setup
 
-# Start the Flask backend
+1. **Copy environment template:**
+   ```bash
+   cp .env.template .env
+   ```
+
+2. **Get your API keys:**
+   - **OpenAI**: https://platform.openai.com/api-keys
+   - **Perplexity AI**: https://www.perplexity.ai/settings/api  
+   - **D-ID**: https://studio.d-id.com/account-settings
+
+3. **Edit `.env` file:**
+   ```bash
+   OPENAI_API_KEY=sk-your-actual-openai-key
+   PERPLEXITY_API_KEY=pplx-your-actual-perplexity-key
+   D_ID_API_KEY=your-actual-d-id-key
+   ```
+
+### 4. Run the Application
+
+```bash
+# Start the backend server
 python app.py
 
-# Open index.html in Chrome/Edge
-# Or serve with a simple HTTP server:
-python -m http.server 8000
+# Open your browser and go to:
+# http://127.0.0.1:5000
+# Then open index.html in your browser
 ```
 
-### 4. Usage
-1. Enter job title and company (optional)
-2. Click "Start Interview" 
-3. Allow microphone and camera permissions
-4. Speak naturally - no button clicking needed!
-5. Get AI feedback and progress through questions
+## 📁 Project Structure
 
-## 🏗️ Architecture
-
-### Backend (`app.py`)
-- **Flask API** with proper route definitions
-- **Error handling** with HTTP status codes
-- **Configuration management** with validation
-- **D-ID integration** for video streaming
-- **Health checks** for monitoring
-
-### AI Logic (`utils.py`)
-- **Question generation** via Perplexity API
-- **Answer evaluation** using OpenAI GPT-4
-- **Natural conversation** flow management
-- **Fallback handling** when APIs fail
-
-### Frontend (`script.js`)
-- **Speech recognition** with automatic detection
-- **Voice activity detection** (simplified)
-- **D-ID video streaming** integration
-- **Real-time transcript** display
-- **Clean state management**
-
-### UI (`index.html`)
-- **Modern design** with Tailwind CSS
-- **Responsive layout** (60/40 video/content split)
-- **Progressive disclosure** (setup → interview → results)
-- **Accessibility** improvements
-
-## 🔧 API Endpoints
-
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/health` | GET | Health check |
-| `/get_questions` | POST | Generate interview questions |
-| `/evaluate_answer` | POST | Evaluate candidate response |
-| `/get_final_evaluation` | POST | Generate final assessment |
-| `/create_did_stream` | POST | Create D-ID video stream |
-| `/did_stream_sdp` | POST | Handle WebRTC SDP |
-| `/did_stream_ice` | POST | Handle ICE candidates |
-| `/did_stream_talk` | POST | Send text for speech synthesis |
-
-## 🛠️ Configuration
-
-### Environment Variables
-```bash
-OPENAI_API_KEY=sk-...          # OpenAI API key
-PERPLEXITY_API_KEY=pplx-...    # Perplexity API key  
-D_ID_API_KEY=...               # D-ID API key
+```
+ai-mock-interview/
+├── index.html          # Enhanced UI with prominent avatar
+├── script.js           # Audio isolation + conversation flow
+├── styles.css          # Responsive design + animations
+├── app.py              # Smart backend with follow-up logic
+├── utils.py            # Enhanced question generation
+├── requirements.txt    # Python dependencies
+├── .env.template       # Environment variables template
+├── .env               # Your actual API keys (create this)
+└── README.md          # This setup guide
 ```
 
-### Frontend Config (script.js)
+## 🎮 How to Use
+
+### For Interviewees
+
+1. **Setup**: Enter your target job title and company
+2. **Start**: Click "Start Interview" and allow microphone access
+3. **Interview**: 
+   - Listen to AI questions
+   - Speak your answers naturally
+   - Receive immediate feedback
+   - Answer follow-up questions when asked
+4. **Complete**: Get comprehensive final evaluation
+
+### For Developers
+
+1. **Test APIs**: Visit `http://127.0.0.1:5000/api_status` to check connections
+2. **Monitor**: Check `http://127.0.0.1:5000/health` for system status
+3. **Debug**: Use browser dev tools to monitor speech recognition and D-ID connection
+
+## 🔧 Configuration Options
+
+### Speech Recognition Settings
+
 ```javascript
-const CONFIG = {
-    API_BASE_URL: 'http://127.0.0.1:5000',
-    SPEECH_TIMEOUT: 3000,
-    AI_RESPONSE_DELAY: 1000,
-    VAD_THRESHOLD: 0.02,
-    SILENCE_FRAMES: 60
-};
+// In script.js, adjust these variables:
+let silenceThreshold = -50; // dB (lower = more sensitive)
+let speechDetectionDelay = 1000; // ms delay after AI stops
+```
+
+### Conversation Flow Settings
+
+```javascript
+// Maximum follow-up questions per main question
+conversationState.maxFollowUpDepth = 2;
+
+// Timeout for auto-submitting answers (ms)
+speechTimeout = 3000;
+```
+
+### Rate Limiting (Backend)
+
+```python
+# In app.py, adjust rate limits:
+rate_limit_check(request.remote_addr, max_requests=20, window_minutes=1)
 ```
 
 ## 🐛 Troubleshooting
 
 ### Common Issues
 
-**Microphone not working:**
-- Ensure Chrome/Edge browser
-- Check browser permissions
-- Test with `chrome://settings/content/microphone`
+**1. "Speech Recognition not supported"**
+- Use Chrome, Firefox, or Edge browser
+- Ensure HTTPS or localhost
+- Check microphone permissions
 
-**D-ID video not loading:**
-- Verify D-ID API key
-- Check browser console for WebRTC errors
-- Ensure stable internet connection
+**2. "D-ID not connected"**
+- Verify D-ID API key in `.env`
+- Check internet connection
+- Try refreshing the page
 
-**API errors:**
-- Verify all API keys in `.env`
-- Check Flask server logs
-- Test endpoints with curl/Postman
+**3. "Audio feedback loop"**
+- This should be fixed with the enhanced audio isolation
+- If it persists, check microphone settings
 
-**Speech recognition stops:**
-- Press Ctrl+Space to manually trigger
-- Check browser console for errors
-- Restart the interview if needed
+**4. "Questions not loading"**
+- Check Perplexity API key
+- Verify internet connection
+- Fallback questions will be used automatically
 
-### Debug Commands
+### Debug Mode
+
+Enable verbose logging:
+
 ```bash
-# Test API endpoints
-curl http://localhost:5000/health
+# Set environment variable
+export FLASK_DEBUG=True
 
-# Check Flask logs
-python app.py  # See console output
-
-# Browser debug
-# Open DevTools (F12) and check Console tab
+# Or in .env file
+FLASK_DEBUG=True
 ```
 
-## 🚀 Production Deployment
+### Browser Console
 
-### Security Checklist
-- [ ] Move API keys to secure secret management
-- [ ] Add rate limiting to API endpoints  
-- [ ] Enable HTTPS for all connections
-- [ ] Add authentication for admin features
-- [ ] Configure CORS for production domains
+Check for errors in browser dev tools:
+- F12 → Console tab
+- Look for red error messages
+- Common issues: microphone access, API connectivity
 
-### Scaling Considerations
-- [ ] Use Redis for session storage
-- [ ] Add database for interview history
-- [ ] Implement load balancing
-- [ ] Add monitoring and logging
-- [ ] Cache AI responses to reduce API costs
+## 📱 Mobile Usage
 
-## 📝 Key Features
+The app is optimized for mobile interviews:
 
-- **Natural Conversation**: No buttons to click during interview
-- **Real-time Speech**: Live transcription and voice activity detection
-- **AI-Powered**: Smart question generation and evaluation
-- **Video Avatar**: Realistic AI interviewer via D-ID
-- **Adaptive Flow**: Questions adjust based on responses
-- **Professional UI**: Clean, modern interface
-- **Error Recovery**: Graceful handling of API failures
+- **Portrait Mode**: Avatar appears at top, controls below
+- **Touch-Friendly**: Large buttons and controls
+- **Responsive**: Adapts to different screen sizes
+- **Accessible**: High contrast, clear typography
 
-## 🎓 Usage Tips
+### Mobile Setup Tips
 
-1. **Speak clearly** and at normal pace
-2. **Pause briefly** when finished answering
-3. **Use specific examples** in your responses
-4. **Practice different roles** to improve skills
-5. **Review AI feedback** for improvement areas
+1. Use headphones to prevent echo
+2. Ensure stable Wi-Fi connection
+3. Keep phone plugged in for longer interviews
+4. Find a quiet environment
+
+## 🔒 Security & Privacy
+
+- **API Keys**: Never commit `.env` file to version control
+- **Audio Data**: Speech is processed locally, not stored
+- **Session Data**: Cleared automatically after 2 hours
+- **Rate Limiting**: Prevents API abuse
+
+## 🚢 Deployment
+
+### Local Production
+
+```bash
+# Use production WSGI server
+pip install gunicorn
+
+# Run with gunicorn
+gunicorn -w 4 -b 0.0.0.0:5000 app:app
+```
+
+### Environment Variables for Production
+
+```bash
+FLASK_ENV=production
+FLASK_DEBUG=False
+# Add your production API keys
+```
+
+### HTTPS Setup (Required for speech recognition)
+
+For production deployment, ensure HTTPS is configured as browsers require secure context for microphone access.
+
+## 📊 API Endpoints
+
+### Interview Endpoints
+- `POST /get_questions` - Generate role-specific questions
+- `POST /evaluate_answer` - Evaluate answer with follow-up logic
+- `POST /get_final_evaluation` - Comprehensive final assessment
+
+### D-ID Proxy Endpoints
+- `POST /create_did_stream` - Initialize video avatar
+- `POST /did_stream_talk` - Send text for avatar to speak
+- `POST /did_stream_destroy` - Clean up video session
+
+### Utility Endpoints
+- `GET /health` - System health check
+- `GET /api_status` - Check API connectivity
+- `POST /start_session` - Initialize new interview session
+
+## 🎯 Performance Tips
+
+1. **Stable Internet**: Video streaming requires good bandwidth
+2. **Modern Browser**: Latest Chrome/Firefox for best performance  
+3. **Quiet Environment**: Reduces speech recognition errors
+4. **Good Microphone**: Clear audio improves transcription accuracy
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create feature branch: `git checkout -b feature-name`
+3. Test your changes thoroughly
+4. Submit pull request with detailed description
 
 ## 📄 License
 
-MIT License - feel free to modify and use for your projects!
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## 🆘 Support
+
+If you encounter issues:
+
+1. Check this README for troubleshooting steps
+2. Verify all API keys are correctly set
+3. Test individual components (speech recognition, D-ID connection)
+4. Check browser console for error messages
+
+## 🎉 Changelog
+
+### Version 2.0.0 (Enhanced Edition)
+- ✅ Audio isolation system prevents feedback loops
+- ✅ Smart follow-up questions based on answer quality
+- ✅ Mobile-first responsive design
+- ✅ Prominent avatar display (2/3 screen width)
+- ✅ Enhanced session management with automatic cleanup
+- ✅ Rate limiting and security improvements
+- ✅ Comprehensive error handling and fallbacks
+- ✅ Natural conversation flow with smooth transitions
+- ✅ Real-time speech status indicators
+- ✅ Accessibility improvements (WCAG 2.1 AA)
+
+### Version 1.0.0 (Original)
+- ✅ Basic D-ID video avatar integration
+- ✅ Speech recognition for voice input
+- ✅ OpenAI answer evaluation
+- ✅ Perplexity question generation
+
+---
+
+**Ready to ace your next interview?** 🚀 Follow the setup guide above and start practicing!
